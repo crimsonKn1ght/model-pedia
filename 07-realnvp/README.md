@@ -88,6 +88,53 @@ python train.py --num-scales 3 --couplings-per-scale 4     # a deeper flow
 
 Figures: `samples.png` and `temperature-sweep.png`.
 
+## Reference run
+
+MNIST, 2 epochs, 2 scales, 3 couplings per scale, 0.18M parameters, CPU only
+(4 cores, about 15 minutes end to end):
+
+| Metric | Value |
+|---|---|
+| train bits/dim, epoch 1 | 2.328 |
+| train bits/dim, epoch 2 | 1.749 |
+| **test bits/dim** | **1.713** |
+| max round-trip error | 0.0 |
+| FID (see note) | 22.8 |
+| KID | 0.863 +/- 0.073 |
+| precision / recall | 0.51 / 0.44 |
+
+Two things in that table are worth sitting with.
+
+**The invertibility check returns exactly 0.0.** Not "small" -- zero to
+floating-point precision. That is the guarantee a flow gives you and neither the
+VAE nor the GAN can: the transform is invertible by construction, so the
+likelihood it reports is exact rather than a bound or an estimate.
+
+**It has the worst FID of the three models measured here**, on the same dataset
+and the same feature space:
+
+| Model | test bits/dim | FID | precision / recall |
+|---|---|---|---|
+| VAE (01) | 0.207 (ELBO bound) | 11.6 | 0.68 / 0.74 |
+| DCGAN (03) | not available | **2.94** | 0.70 / 0.87 |
+| RealNVP (07) | **1.713** (exact) | 22.8 | 0.51 / 0.44 |
+
+The flow is the only one of the three that can tell you the exact likelihood of
+a test image, and it produces the least convincing samples. Look at
+`temperature-sweep.png`: after two epochs the outputs are stroke-like blobs with
+digit statistics rather than digits.
+
+This is not a bug and not merely undertraining, though more epochs would help.
+Bits/dim is dominated by getting the high-frequency pixel noise distribution
+right, because that is where most of the entropy in an image lives. A model can
+win on likelihood by modelling texture statistics well while never learning that
+a digit needs to be one connected stroke. **Likelihood and perceptual quality
+are different objectives**, and this is the clearest place in the repository to
+see them come apart.
+
+Note also the cost: a flow must preserve dimensionality at every layer, so its
+0.18M parameters buy far less than the same budget spent on a GAN.
+
 ## What to look at
 
 * The temperature sweep. Flows sample `z ~ N(0, T^2 I)`; `T < 1` concentrates
