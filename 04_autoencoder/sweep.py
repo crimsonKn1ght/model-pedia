@@ -32,7 +32,9 @@ def compare_reconstructions(checkpoints: list[tuple[int, str]], args, path) -> N
     """One figure: the same test images decoded through every bottleneck size."""
     set_seed(args.seed)
     dev = get_device(args.device)
-    train_ds, val_ds, test_ds, _ = get_datasets(args.dataset, root=args.data_root, seed=args.seed)
+    train_ds, val_ds, test_ds, _ = get_datasets(
+        args.dataset, root=args.data_root, seed=args.seed, synthetic=args.smoke_test
+    )
     _, _, test_loader = get_dataloaders(
         train_ds, val_ds, test_ds, batch_size=args.columns, num_workers=0
     )
@@ -95,8 +97,10 @@ def main() -> None:
     parser.add_argument("--data-root", default="data")
     parser.add_argument("--out-dir", default=None)
     parser.add_argument("--columns", type=int, default=8, help="images in the comparison figure")
+    parser.add_argument("--smoke-test", action="store_true", help="run on random tensors")
     args = parser.parse_args()
 
+    workers = 0 if args.smoke_test else args.num_workers
     out_root = Path(args.out_dir or f"outputs/sweep_{args.dataset}")
     rows, checkpoints = [], []
 
@@ -106,22 +110,24 @@ def main() -> None:
             dataset=args.dataset,
             latent_dim=latent_dim,
             loss=args.loss,
-            epochs=args.epochs,
+            epochs=1 if args.smoke_test else args.epochs,
             batch_size=args.batch_size,
             lr=args.lr,
             train_subset=args.train_subset or None,
-            num_workers=args.num_workers,
+            num_workers=workers,
             seed=args.seed,
             device=args.device,
             data_root=args.data_root,
             out_dir=str(out_root / f"latent{latent_dim}"),
+            synthetic=args.smoke_test,
         )
         result = run_evaluation(
             checkpoint=summary["checkpoint"],
             data_root=args.data_root,
-            num_workers=args.num_workers,
+            num_workers=workers,
             device=args.device,
             seed=args.seed,
+            synthetic=args.smoke_test,
             verbose=False,
         )
         rows.append(

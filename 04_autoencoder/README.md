@@ -15,7 +15,7 @@ you nothing. The bottleneck *is* the model.
 pip install -r ../requirements.txt
 
 python data.py --dataset fashion-mnist               # download (~30 MB)
-python train.py --latent-dim 32 --epochs 10          # about two minutes on CPU
+python train.py --latent-dim 32 --epochs 10          # about three minutes on CPU
 python evaluate.py --checkpoint outputs/fashion-mnist_latent32/best.pt
 ```
 

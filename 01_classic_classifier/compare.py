@@ -27,28 +27,33 @@ def main() -> None:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--data-root", default="data")
     parser.add_argument("--num-workers", type=int, default=2)
+    parser.add_argument("--smoke-test", action="store_true", help="run on random tensors")
     args = parser.parse_args()
 
+    workers = 0 if args.smoke_test else args.num_workers
     rows = []
     for model_name in args.models:
         print(f"\n=== {model_name} on {args.dataset} ===")
         summary = run_training(
             model_name=model_name,
             dataset=args.dataset,
-            epochs=args.epochs,
+            epochs=1 if args.smoke_test else args.epochs,
             batch_size=args.batch_size,
             lr=args.lr,
             seed=args.seed,
             device=args.device,
             data_root=args.data_root,
-            num_workers=args.num_workers,
+            num_workers=workers,
+            out_dir=f"outputs/smoke/{model_name}" if args.smoke_test else None,
+            synthetic=args.smoke_test,
         )
         result = run_evaluation(
             checkpoint=summary["checkpoint"],
             data_root=args.data_root,
             device=args.device,
-            num_workers=args.num_workers,
+            num_workers=workers,
             seed=args.seed,
+            synthetic=args.smoke_test,
             verbose=False,
         )
         rows.append(

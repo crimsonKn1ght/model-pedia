@@ -1,48 +1,48 @@
-"""Ablations that isolate what actually makes a CNN classifier work.
+"""Ablations for the denoiser.
 
-    python compare.py --study residual     # resnet20 vs the same net without skips
-    python compare.py --study depth        # resnet20 vs resnet32
-    python compare.py --study augment      # crop/flip on vs off
+    python compare.py --study skips      # U-Net vs the same net without skips
+    python compare.py --study target     # predict the clean image vs the noise
+    python compare.py --study loss       # L1 vs L2
 
-Every arm sees the same data, optimiser and seed, so the difference in the
-final table belongs to the one thing that changed.
+Same data, same schedule, same seed in every arm.
 """
 
 from __future__ import annotations
 
 import argparse
+from types import SimpleNamespace
 
 from data import DATASETS
 from evaluate import run_evaluation
 from train import run_training
 
 STUDIES = {
-    # name -> list of (label, overrides)
-    "residual": [
-        ("plain20", {"arch": "plain20"}),
-        ("resnet20", {"arch": "resnet20"}),
-        ("plain32", {"arch": "plain32"}),
-        ("resnet32", {"arch": "resnet32"}),
+    "skips": [
+        ("no skips", {"model_name": "unet_noskip"}),
+        ("U-Net", {"model_name": "unet"}),
     ],
-    "depth": [
-        ("resnet20", {"arch": "resnet20"}),
-        ("resnet32", {"arch": "resnet32"}),
+    "target": [
+        ("predict image", {"predict_residual": False}),
+        ("predict noise", {"predict_residual": True}),
     ],
-    "augment": [
-        ("no augment", {"arch": "resnet20", "augment": False}),
-        ("crop + flip", {"arch": "resnet20", "augment": True}),
+    "loss": [
+        ("L2", {"loss": "l2"}),
+        ("L1", {"loss": "l1"}),
     ],
 }
 
+REPORT_SIGMA = 0.15
+
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run a controlled comparison.")
-    parser.add_argument("--study", default="residual", choices=sorted(STUDIES))
+    parser = argparse.ArgumentParser(description="Run a controlled denoising comparison.")
+    parser.add_argument("--study", default="skips", choices=sorted(STUDIES))
     parser.add_argument("--dataset", default="cifar10", choices=sorted(DATASETS))
-    parser.add_argument("--epochs", type=int, default=12)
+    parser.add_argument("--epochs", type=int, default=6)
     parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--lr", type=float, default=0.1)
-    parser.add_argument("--train-subset", type=int, default=15000)
+    parser.add_argument("--lr", type=float, default=2e-3)
+    parser.add_argument("--sigma-range", type=float, nargs=2, default=[0.05, 0.25])
+    parser.add_argument("--train-subset", type=int, default=10000)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", default="auto")
@@ -56,6 +56,8 @@ def main() -> None:
         print(f"\n=== {args.study}: {label} ===")
         summary = run_training(
             dataset=args.dataset,
+            sigma_range=tuple(args.sigma_range),
+            val_sigma=REPORT_SIGMA,
             epochs=1 if args.smoke_test else args.epochs,
             batch_size=args.batch_size,
             lr=args.lr,
@@ -73,40 +75,46 @@ def main() -> None:
             **overrides,
         )
         result = run_evaluation(
-            checkpoint=summary["checkpoint"],
-            data_root=args.data_root,
-            num_workers=workers,
-            device=args.device,
-            seed=args.seed,
-            synthetic=args.smoke_test,
+            SimpleNamespace(
+                checkpoint=summary["checkpoint"],
+                sigmas=[REPORT_SIGMA],
+                test_dir=None,
+                data_root=args.data_root,
+                batch_size=256,
+                num_workers=workers,
+                device=args.device,
+                seed=args.seed,
+                smoke_test=args.smoke_test,
+            ),
             verbose=False,
         )
+        at_sigma = result["by_sigma"][0]
         rows.append(
             {
                 "label": label,
                 "params": summary["parameters"],
                 "seconds": summary["train_seconds"],
-                "val_acc": summary["best_val_acc"],
-                "top1": result["top1_accuracy"],
-                "top5": result["top5_accuracy"],
+                "noisy_psnr": at_sigma["noisy_psnr_db"],
+                "psnr": at_sigma["denoised_psnr_db"],
+                "gain": at_sigma["psnr_gain_db"],
+                "ssim": at_sigma["denoised_ssim"],
             }
         )
 
-    print(
-        f"\n=== summary: {args.study} on {args.dataset}, {args.epochs} epochs, seed {args.seed} ==="
-    )
+    print(f"\n=== {args.study} on {args.dataset}, test sigma {REPORT_SIGMA} ===")
     width = max(len(row["label"]) for row in rows)
     header = (
         f"{'arm'.ljust(width)} {'params':>10s} {'train s':>8s} "
-        f"{'val acc':>8s} {'top-1':>8s} {'top-5':>8s}"
+        f"{'PSNR dB':>8s} {'gain':>7s} {'SSIM':>7s}"
     )
     print(header)
     print("-" * len(header))
     for row in rows:
         print(
             f"{row['label'].ljust(width)} {row['params']:10,d} {row['seconds']:8.1f} "
-            f"{row['val_acc']:8.4f} {row['top1']:8.4f} {row['top5']:8.4f}"
+            f"{row['psnr']:8.2f} {row['gain']:+7.2f} {row['ssim']:7.4f}"
         )
+    print(f"\nnoisy input baseline: {rows[0]['noisy_psnr']:.2f} dB")
 
 
 if __name__ == "__main__":

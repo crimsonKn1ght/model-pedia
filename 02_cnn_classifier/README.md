@@ -31,7 +31,7 @@ python compare.py --study augment    # random crop + flip on/off
 ### Keeping it short
 
 The defaults train on a 15 000-image subset for 12 epochs, which is roughly
-five minutes of CPU. For the numbers people quote in papers:
+seven minutes on four CPU cores. For the numbers people quote in papers:
 
 ```bash
 python train.py --arch resnet20 --train-subset 0 --epochs 30   # full split
