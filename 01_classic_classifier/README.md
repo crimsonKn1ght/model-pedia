@@ -24,13 +24,18 @@ python evaluate.py --checkpoint outputs/mnist_lenet/best.pt
 Or train both and get one table:
 
 ```bash
-python compare.py --dataset fashion-mnist --epochs 5
+python compare.py --dataset fashion-mnist --epochs 12
 ```
 
-Both models train in a few minutes on a CPU. Fashion-MNIST is the more
-interesting dataset - MNIST is close to saturated, and the confusion matrix on
-Fashion-MNIST shows a real, interpretable failure mode (shirt vs coat vs
-pullover).
+Each model trains in about two minutes per five epochs on four CPU cores.
+
+Fashion-MNIST is the more interesting dataset, for two reasons. Its confusion
+matrix shows a real, interpretable failure mode - shirt is confused with
+T-shirt, coat and pullover, and nothing else - where MNIST is close to
+saturated. And it is where LeNet's advantage has to be earned: at five epochs
+the two models are level, because this LeNet is small enough to still be
+underfitting. Give it twelve and it pulls ahead. On MNIST the gap is obvious
+after one epoch. Same two architectures, different lesson.
 
 ## Files
 
@@ -53,19 +58,30 @@ Everything lands in `outputs/<dataset>_<model>/`:
 - `confusion_matrix.png` - row-normalised heatmap
 - `mistakes.png` - test images the model gets wrong, true label vs prediction
 
-## Typical numbers
+## Measured numbers
 
-Indicative test accuracy after 5 epochs on CPU; expect small variation with
-seed and hardware.
+Test accuracy from `compare.py`, seed 0, four CPU cores. Expect small variation
+with seed and hardware.
 
-| Dataset | MLP (~0.24 M params) | LeNet-5 (~0.06 M params) |
-|---|---|---|
-| MNIST | ~0.977 | ~0.990 |
-| Fashion-MNIST | ~0.884 | ~0.905 |
+| Dataset | Epochs | MLP (235 k params) | LeNet-5 (62 k params) | Gap |
+|---|---|---|---|---|
+| MNIST | 5 | 0.9788 | **0.9900** | +1.1 pts |
+| Fashion-MNIST | 5 | 0.8829 | 0.8849 | +0.2 pts |
+| Fashion-MNIST | 12 | 0.8928 | **0.8998** | +0.7 pts |
+
+LeNet has 3.8x fewer parameters in every row. The Fashion-MNIST rows are the
+honest version of the story: the architectural advantage is real but it is not
+free, and a short run will not show it.
+
+Per-class F1 for LeNet on Fashion-MNIST after 5 epochs makes the failure mode
+concrete - trouser 0.98, bag 0.97, ankle boot 0.96, but shirt only 0.69. Nearly
+all of the remaining error is one class the model genuinely cannot separate
+from its neighbours.
 
 ## Knobs worth turning
 
-- `--epochs` - more epochs mostly help the MLP catch up on MNIST, not on Fashion-MNIST.
+- `--epochs` - on Fashion-MNIST this is what separates the two models; five
+  epochs is not enough to distinguish them.
 - `--augment` - mild rotation/translation jitter; helps LeNet, hurts the MLP,
   which is exactly what you would predict from weight sharing.
 - `--train-subset 5000` - the CNN degrades far more gracefully with less data.
