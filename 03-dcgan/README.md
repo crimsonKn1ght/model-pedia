@@ -75,6 +75,35 @@ is bad:
 | low | high | broad coverage, poor quality |
 | high | high | what you want |
 
+## Reference run
+
+MNIST, 8 epochs, `base_channels=32`, generator 0.37M / discriminator 0.17M
+parameters, CPU only (4 cores, about 12 minutes end to end):
+
+| Metric | Value |
+|---|---|
+| FID (see note) | 2.94 |
+| KID | 0.132 +/- 0.049 |
+| precision / recall | 0.70 / 0.87 |
+
+Worth comparing against project 01's VAE on the same dataset, same feature
+space, similar budget: **FID 11.6 for the VAE against 2.94 here**, with recall
+rising from 0.74 to 0.87. Put the two sample grids side by side and the reason
+is obvious -- the VAE's outputs are recognisable but soft, the GAN's have clean
+strokes and sharp edges.
+
+That gap is structural, not a matter of tuning. The VAE optimises a
+reconstruction likelihood, and under uncertainty the likelihood-maximising
+answer is to average over plausible outcomes, which looks like blur. The GAN has
+no such term: the discriminator penalises blur directly, because blurry images
+are easy to identify as fake. The GAN pays for this elsewhere -- no likelihood,
+no encoder, and a training process that can collapse without warning.
+
+Watch the printed `D(x)` and `D(G(z))` above: they converge towards each other
+through epoch 4 and then begin separating again as the discriminator pulls
+ahead. That drift is normal, but if `D(G(z))` keeps falling towards zero the
+generator is running out of gradient.
+
 ## Reading the training log
 
 The printed `D(x)` and `D(G(z))` are the discriminator's average confidence on

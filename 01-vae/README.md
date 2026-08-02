@@ -87,9 +87,20 @@ MNIST, 5 epochs, `latent_dim=16`, `beta=1`, 0.43M parameters, CPU only
 | precision / recall | 0.68 / 0.74 |
 
 Samples are clearly digits after five epochs, and the latent scatter already
-separates several classes. Longer training and a larger `latent_dim` sharpen
-reconstructions but also make prior samples blurrier unless `beta` is retuned --
-that tension *is* the VAE.
+separates several classes. The traversal figure shows each latent dimension
+smoothly morphing the digit, which is the clearest single picture of what the
+latent space has learned.
+
+For contrast, the DCGAN in project 03 reaches **FID 2.94** on the same dataset,
+in the same feature space, on a comparable budget. The VAE's samples are softer,
+and that is structural rather than a tuning failure: maximising a reconstruction
+likelihood means averaging over plausible outcomes wherever the model is
+uncertain, and averaging looks like blur. What the VAE gets in exchange is an
+encoder, a smooth traversable latent space and a real likelihood bound -- none
+of which the GAN has.
+
+Longer training and a larger `latent_dim` sharpen reconstructions but also make
+prior samples blurrier unless `beta` is retuned -- that tension *is* the VAE.
 
 ## A note on FID and KID in this repository
 
