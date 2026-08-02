@@ -165,9 +165,21 @@ def progress(iterable: Iterable, desc: str = "", total: Optional[int] = None):
 # --------------------------------------------------------------------------- #
 # Argument parsing shared by the training scripts
 # --------------------------------------------------------------------------- #
+#: Datasets and the cached metric feature extractors are shared by every
+#: project, so they live at the repository root rather than under whichever
+#: folder happens to be the working directory.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DATA_ROOT = REPO_ROOT / "data"
+DEFAULT_FEATURE_CACHE = REPO_ROOT / "outputs" / "feature-extractors"
+
+
 def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     """Flags every training script understands."""
-    parser.add_argument("--data-root", default="data", help="where datasets are stored")
+    parser.add_argument(
+        "--data-root",
+        default=str(DEFAULT_DATA_ROOT),
+        help="where datasets are stored (shared across projects)",
+    )
     parser.add_argument("--out-dir", default=None, help="where checkpoints/samples are written")
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda", "mps"])
     parser.add_argument("--seed", type=int, default=0)

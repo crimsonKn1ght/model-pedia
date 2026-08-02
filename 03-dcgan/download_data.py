@@ -1,12 +1,12 @@
 """Fetch the datasets this project can train on.
 
-    python download_data.py                  # the defaults: MNIST + Fashion-MNIST
-    python download_data.py --dataset celeba64
+    python download_data.py
+    python download_data.py --dataset cifar10 celeba64
 """
 
 import argparse
 
-import bootstrap  # noqa: F401  (puts the repository root on sys.path)
+import bootstrap  # noqa: F401
 from common import data, utils
 
 DEFAULTS = ["mnist", "fashion-mnist"]

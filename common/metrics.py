@@ -30,7 +30,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from common import data as data_mod
-from common.utils import ensure_dir, get_device, progress, set_seed
+from common.utils import DEFAULT_FEATURE_CACHE, ensure_dir, get_device, progress, set_seed
 
 
 # --------------------------------------------------------------------------- #
@@ -39,7 +39,11 @@ from common.utils import ensure_dir, get_device, progress, set_seed
 class SmallConvFeatures(nn.Module):
     """A compact CNN whose penultimate activations act as the feature space."""
 
-    def __init__(self, channels: int = 1, num_classes: int = 10, feature_dim: int = 128):
+    # 64 dimensions is a deliberate choice: FID fits a full covariance matrix,
+    # which needs comfortably more samples than dimensions to be stable. These
+    # projects evaluate on 1-2k samples, and per-class breakdowns on a few
+    # hundred, so a narrow feature space keeps those estimates well conditioned.
+    def __init__(self, channels: int = 1, num_classes: int = 10, feature_dim: int = 64):
         super().__init__()
         self.body = nn.Sequential(
             nn.Conv2d(channels, 32, 3, stride=2, padding=1),  # 32 -> 16
@@ -159,7 +163,7 @@ def get_feature_extractor(
     root: str = "data",
     image_size: int = 32,
     device: Optional[torch.device] = None,
-    cache_dir: str = "outputs/feature-extractors",
+    cache_dir: Optional[str] = None,
     kind: str = "small-cnn",
     num_workers: int = 2,
 ) -> nn.Module:
@@ -170,7 +174,7 @@ def get_feature_extractor(
     if kind != "small-cnn":
         raise ValueError(f"unknown feature extractor {kind!r}")
 
-    cache = ensure_dir(cache_dir) / f"{dataset_name}-{image_size}.pt"
+    cache = ensure_dir(cache_dir or DEFAULT_FEATURE_CACHE) / f"{dataset_name}-{image_size}.pt"
     meta = data_mod.info(dataset_name)
     num_classes = meta.num_classes if meta.num_classes > 1 else 4
     if cache.exists():

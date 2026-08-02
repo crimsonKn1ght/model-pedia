@@ -1,15 +1,17 @@
-"""Fetch the datasets this project can train on.
+"""Fetch the dataset used to evaluate DDIM sampling.
 
-    python download_data.py                  # the defaults: MNIST + Fashion-MNIST
-    python download_data.py --dataset celeba64
+    python download_data.py
+
+DDIM adds no training of its own, so this only needs the dataset that the
+project-08 DDPM was trained on, in order to compute reference metrics.
 """
 
 import argparse
 
-import bootstrap  # noqa: F401  (puts the repository root on sys.path)
+import bootstrap  # noqa: F401
 from common import data, utils
 
-DEFAULTS = ["mnist", "fashion-mnist"]
+DEFAULTS = ["mnist"]
 
 
 def main() -> None:
