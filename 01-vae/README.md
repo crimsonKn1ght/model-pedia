@@ -82,9 +82,9 @@ MNIST, 5 epochs, `latent_dim=16`, `beta=1`, 0.43M parameters, CPU only
 | reconstruction term | 123.9 |
 | KL term | 22.7 |
 | bits/dim | 0.207 |
-| FID (see note) | 22.6 |
-| KID | 0.483 +/- 0.062 |
-| precision / recall | 0.70 / 0.78 |
+| FID (see note) | 11.6 |
+| KID | 0.534 +/- 0.075 |
+| precision / recall | 0.68 / 0.74 |
 
 Samples are clearly digits after five epochs, and the latent scatter already
 separates several classes. Longer training and a larger `latent_dim` sharpen
