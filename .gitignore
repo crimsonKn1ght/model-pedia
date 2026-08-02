@@ -1,0 +1,22 @@
+# Datasets and training artefacts are regenerated locally, never committed.
+data/
+*/data/
+outputs/
+*/outputs/
+*.pt
+*.pth
+*.tar.gz
+*.tgz
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
