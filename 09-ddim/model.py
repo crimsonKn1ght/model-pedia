@@ -47,11 +47,21 @@ class DDIMSampler(nn.Module):
         self.timesteps = diffusion.timesteps
 
     def timestep_subsequence(self, num_steps: int, method: str = "uniform") -> List[int]:
-        """Pick which of the original timesteps to actually visit."""
-        num_steps = min(num_steps, self.timesteps)
+        """Pick which of the original timesteps to actually visit.
+
+        The subsequence must span the *whole* range, ending at ``timesteps - 1``.
+        Sampling starts from pure noise, so the first timestep the model is told
+        about has to be the one whose marginal actually is pure noise. A
+        subsequence that stops short (say at 240 of 300) hands the network a
+        fully-noised image while claiming a much lower noise level, and the
+        resulting mismatch corrupts the entire trajectory -- worsening sharply
+        as the step count drops, which is precisely where DDIM is supposed to
+        shine.
+        """
+        num_steps = max(2, min(num_steps, self.timesteps))
+        last = self.timesteps - 1
         if method == "uniform":
-            stride = self.timesteps / num_steps
-            steps = [int(i * stride) for i in range(num_steps)]
+            steps = [round(i * last / (num_steps - 1)) for i in range(num_steps)]
         elif method == "quadratic":
             # Spends more steps at the low-noise end, where detail is decided.
             steps = [
