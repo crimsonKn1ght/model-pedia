@@ -95,14 +95,30 @@ def per_class_metrics(cm: np.ndarray) -> dict:
     }
 
 
-def format_per_class_table(metrics: dict, class_names: list[str]) -> str:
-    """Render the per-class metrics as a plain-text table."""
-    width = max([len("overall")] + [len(name) for name in class_names])
+def format_per_class_table(
+    metrics: dict, class_names: list[str], max_rows: int | None = None
+) -> str:
+    """Render the per-class metrics as a plain-text table.
+
+    With more classes than ``max_rows`` only the strongest and weakest classes
+    by F1 are listed, which is what you actually want to read on CIFAR-100.
+    """
+    order = list(range(len(class_names)))
+    elided_at = None
+    if max_rows is not None and len(order) > max_rows:
+        half = max_rows // 2
+        by_f1 = sorted(order, key=lambda i: metrics["f1"][i], reverse=True)
+        order = by_f1[:half] + by_f1[-half:]
+        elided_at = half
+
+    width = max([len("overall")] + [len(class_names[i]) for i in order])
     lines = [f"{'class'.ljust(width)}  {'prec':>6} {'recall':>6} {'f1':>6} {'n':>6}"]
     lines.append("-" * len(lines[0]))
-    for i, name in enumerate(class_names):
+    for position, i in enumerate(order):
+        if position == elided_at:
+            lines.append(f"{'...'.ljust(width)}  {'':>6} {'':>6} {'':>6} {'':>6}")
         lines.append(
-            f"{name.ljust(width)}  "
+            f"{class_names[i].ljust(width)}  "
             f"{metrics['precision'][i]:6.3f} {metrics['recall'][i]:6.3f} "
             f"{metrics['f1'][i]:6.3f} {metrics['support'][i]:6d}"
         )
@@ -123,29 +139,35 @@ def plot_confusion_matrix(
         row_sums = data.sum(axis=1, keepdims=True)
         data = np.divide(data, row_sums, out=np.zeros_like(data), where=row_sums > 0)
 
-    fig, ax = plt.subplots(figsize=(1.0 + 0.6 * len(class_names), 1.0 + 0.6 * len(class_names)))
+    # With many classes the tick labels and per-cell numbers stop being readable.
+    detailed = len(class_names) <= 20
+    side = min(1.0 + 0.6 * len(class_names), 12.0)
+
+    fig, ax = plt.subplots(figsize=(side, side))
     im = ax.imshow(data, cmap="Blues", vmin=0, vmax=data.max() if data.max() > 0 else 1)
     fig.colorbar(im, ax=ax, fraction=0.046)
 
-    ax.set_xticks(range(len(class_names)), class_names, rotation=45, ha="right")
-    ax.set_yticks(range(len(class_names)), class_names)
+    if detailed:
+        ax.set_xticks(range(len(class_names)), class_names, rotation=45, ha="right")
+        ax.set_yticks(range(len(class_names)), class_names)
     ax.set_xlabel("predicted")
     ax.set_ylabel("true")
     ax.set_title("confusion matrix" + (" (row-normalised)" if normalize else ""))
 
-    threshold = data.max() / 2 if data.max() > 0 else 0.5
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            text = f"{data[i, j]:.2f}" if normalize else f"{cm[i, j]:d}"
-            ax.text(
-                j,
-                i,
-                text,
-                ha="center",
-                va="center",
-                fontsize=7,
-                color="white" if data[i, j] > threshold else "black",
-            )
+    if detailed:
+        threshold = data.max() / 2 if data.max() > 0 else 0.5
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                text = f"{data[i, j]:.2f}" if normalize else f"{cm[i, j]:d}"
+                ax.text(
+                    j,
+                    i,
+                    text,
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color="white" if data[i, j] > threshold else "black",
+                )
 
     fig.tight_layout()
     Path(path).parent.mkdir(parents=True, exist_ok=True)
