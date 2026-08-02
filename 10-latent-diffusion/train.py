@@ -87,6 +87,7 @@ def main() -> None:
         train=True,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        subset=args.train_subset,
     )
 
     history = utils.History()

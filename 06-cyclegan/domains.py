@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Tuple
 
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from common import data as data_mod
 
@@ -19,6 +19,7 @@ def build_domains(
     train: bool,
     domain_a: str,
     domain_b: str,
+    subset: int = 0,
 ) -> Tuple[Dataset, Dataset, int, str, str]:
     """Return ``(dataset_a, dataset_b, channels, label_a, label_b)``.
 
@@ -35,7 +36,7 @@ def build_domains(
         set_a = data_mod.class_subset(base, [idx_a])
         set_b = data_mod.class_subset(base, [idx_b])
         names = meta.class_names or tuple(str(i) for i in range(meta.num_classes))
-        return set_a, set_b, meta.channels, names[idx_a], names[idx_b]
+        return limit(set_a, subset), limit(set_b, subset), meta.channels, names[idx_a], names[idx_b]
 
     if task == "datasets":
         set_a = data_mod.get_dataset(domain_a, root=data_root, image_size=image_size, train=train)
@@ -46,7 +47,7 @@ def build_domains(
                 f"{domain_a} has {channels} channels but {domain_b} has "
                 f"{data_mod.info(domain_b).channels}; pick two datasets that match"
             )
-        return set_a, set_b, channels, domain_a, domain_b
+        return limit(set_a, subset), limit(set_b, subset), channels, domain_a, domain_b
 
     if task == "horse2zebra":
         split = "train" if train else "test"
@@ -57,14 +58,22 @@ def build_domains(
                 f"{dir_a} not found. Run: python download_data.py --horse2zebra"
             )
         return (
-            data_mod.ImageFolderFlat(dir_a, image_size),
-            data_mod.ImageFolderFlat(dir_b, image_size),
+            limit(data_mod.ImageFolderFlat(dir_a, image_size), subset),
+            limit(data_mod.ImageFolderFlat(dir_b, image_size), subset),
             3,
             "horse",
             "zebra",
         )
 
     raise ValueError(f"unknown task {task!r}")
+
+
+def limit(dataset: Dataset, subset: int) -> Dataset:
+    """Evenly spread subset of a domain, so runtimes stay predictable."""
+    if not subset or subset <= 0 or subset >= len(dataset):
+        return dataset
+    stride = len(dataset) / subset
+    return Subset(dataset, [int(i * stride) for i in range(subset)])
 
 
 def unpaired_loader(

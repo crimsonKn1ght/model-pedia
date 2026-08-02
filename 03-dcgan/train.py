@@ -62,6 +62,7 @@ def main() -> None:
         batch_size=args.batch_size,
         augment=args.dataset in {"celeba64", "cifar10"},
         num_workers=args.num_workers,
+        subset=args.train_subset,
     )
 
     generator = Generator(args.latent_dim, meta.channels, args.image_size, args.base_channels).to(device)

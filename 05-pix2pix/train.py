@@ -52,7 +52,7 @@ def main() -> None:
 
     loader, in_ch, out_ch = build_loader(
         args.task, args.dataset, args.data_root, args.image_size,
-        args.batch_size, train=True, num_workers=args.num_workers,
+        args.batch_size, train=True, num_workers=args.num_workers, subset=args.train_subset,
     )
 
     generator = UNetGenerator(in_ch, out_ch, base=args.base_channels, depth=args.depth).to(device)

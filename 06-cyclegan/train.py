@@ -60,7 +60,8 @@ def main() -> None:
     samples_dir = utils.ensure_dir(out_dir / "samples")
 
     set_a, set_b, channels, name_a, name_b = build_domains(
-        args.task, args.dataset, args.data_root, args.image_size, True, args.domain_a, args.domain_b
+        args.task, args.dataset, args.data_root, args.image_size, True, args.domain_a,
+        args.domain_b, subset=args.train_subset,
     )
     loader = unpaired_loader(set_a, set_b, args.batch_size, True, args.num_workers, args.seed)
 

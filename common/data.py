@@ -278,6 +278,7 @@ def get_dataloader(
     shuffle: Optional[bool] = None,
     drop_last: Optional[bool] = None,
     download: bool = True,
+    subset: Optional[int] = None,
 ) -> DataLoader:
     dataset = get_dataset(
         name,
@@ -288,6 +289,11 @@ def get_dataloader(
         augment=augment,
         download=download,
     )
+    if subset and subset > 0 and subset < len(dataset):
+        # A fixed, evenly spread subset -- deterministic, and it keeps the class
+        # balance of the original rather than taking whatever the first N are.
+        stride = len(dataset) / subset
+        dataset = Subset(dataset, [int(i * stride) for i in range(subset)])
     return DataLoader(
         dataset,
         batch_size=batch_size,

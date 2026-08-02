@@ -62,6 +62,7 @@ def main() -> None:
         batch_size=args.batch_size,
         normalize="unit",
         num_workers=args.num_workers,
+        subset=args.train_subset,
     )
 
     model = VAE(

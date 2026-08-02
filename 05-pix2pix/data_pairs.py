@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Tuple
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from common import data as data_mod
 
@@ -19,6 +19,7 @@ def build_loader(
     batch_size: int,
     train: bool,
     num_workers: int = 2,
+    subset: int = 0,
 ) -> Tuple[DataLoader, int, int]:
     """Return ``(loader, in_channels, out_channels)`` for the requested task.
 
@@ -43,6 +44,10 @@ def build_loader(
         in_ch, out_ch = 3, 3
     else:
         raise ValueError(f"unknown task {task!r}")
+
+    if subset and 0 < subset < len(paired):
+        stride = len(paired) / subset
+        paired = Subset(paired, [int(i * stride) for i in range(subset)])
 
     loader = DataLoader(
         paired,

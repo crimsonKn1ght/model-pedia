@@ -69,6 +69,7 @@ def main() -> None:
         train=True,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        subset=args.train_subset,
     )
 
     unet = UNet(channels=meta.channels, base=args.base_channels).to(device)

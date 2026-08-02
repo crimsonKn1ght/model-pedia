@@ -45,6 +45,7 @@ class VectorQuantizer(nn.Module):
         commitment_cost: float = 0.25,
         decay: float = 0.99,
         epsilon: float = 1e-5,
+        restart_threshold: float = 1.0,
     ):
         super().__init__()
         self.num_embeddings = num_embeddings
@@ -52,6 +53,9 @@ class VectorQuantizer(nn.Module):
         self.commitment_cost = commitment_cost
         self.decay = decay
         self.epsilon = epsilon
+        # Codes whose EMA cluster size falls below this are considered dead and
+        # get reseeded from real encoder outputs. Set to 0 to disable.
+        self.restart_threshold = restart_threshold
 
         embed = torch.randn(num_embeddings, embedding_dim) * 0.1
         if decay > 0:
@@ -98,6 +102,21 @@ class VectorQuantizer(nn.Module):
                     * n
                 )
                 self.embedding.copy_(self.embed_avg / cluster_size.unsqueeze(1))
+
+                # Dead-code restarts. Codes that stop winning any inputs never
+                # receive an EMA update again, so they stay dead forever and the
+                # effective codebook shrinks -- the classic VQ-VAE collapse.
+                # Reseeding them from real encoder outputs puts them back
+                # somewhere the data actually is.
+                if self.restart_threshold > 0:
+                    dead = self.cluster_size < self.restart_threshold
+                    num_dead = int(dead.sum())
+                    if num_dead > 0:
+                        pick = torch.randint(flat.shape[0], (num_dead,), device=flat.device)
+                        seeds = flat[pick]
+                        self.embedding[dead] = seeds
+                        self.embed_avg[dead] = seeds
+                        self.cluster_size[dead] = 1.0
             loss = self.commitment_cost * F.mse_loss(z, quantized.detach())
         else:
             codebook_loss = F.mse_loss(quantized, z.detach())
@@ -186,10 +205,13 @@ class VQVAE(nn.Module):
         num_embeddings: int = 256,
         commitment_cost: float = 0.25,
         decay: float = 0.99,
+        restart_threshold: float = 1.0,
     ):
         super().__init__()
         self.encoder = Encoder(channels, hidden, embedding_dim)
-        self.quantizer = VectorQuantizer(num_embeddings, embedding_dim, commitment_cost, decay)
+        self.quantizer = VectorQuantizer(
+            num_embeddings, embedding_dim, commitment_cost, decay, restart_threshold=restart_threshold
+        )
         self.decoder = Decoder(channels, hidden, embedding_dim)
         self.channels = channels
         self.num_embeddings = num_embeddings

@@ -185,6 +185,12 @@ def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument(
+        "--train-subset",
+        type=int,
+        default=0,
+        help="train on this many images instead of the full split; 0 uses everything",
+    )
+    parser.add_argument(
         "--quick",
         action="store_true",
         help="tiny run over a few batches, used to verify the pipeline end to end",

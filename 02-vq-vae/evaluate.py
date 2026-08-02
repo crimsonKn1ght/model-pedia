@@ -52,6 +52,7 @@ def main() -> None:
         num_embeddings=cfg["num_embeddings"],
         commitment_cost=cfg["commitment_cost"],
         decay=cfg["decay"],
+        restart_threshold=cfg.get("restart_threshold", 1.0),
     ).to(device)
     model.load_state_dict(ckpt["model"])
     model.eval()

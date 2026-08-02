@@ -83,6 +83,7 @@ def main() -> None:
         batch_size=args.batch_size,
         augment=not args.no_augment,
         num_workers=args.num_workers,
+        subset=args.train_subset,
     )
     test_loader = data_mod.get_dataloader(
         args.dataset,

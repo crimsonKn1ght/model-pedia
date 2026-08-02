@@ -30,11 +30,17 @@ def build_parser() -> argparse.ArgumentParser:
     utils.add_common_args(parser)
     parser.add_argument("--dataset", default="cifar10", choices=data_mod.DATASET_NAMES)
     parser.add_argument("--image-size", type=int, default=32)
-    parser.add_argument("--hidden", type=int, default=96)
+    parser.add_argument("--hidden", type=int, default=64)
     parser.add_argument("--embedding-dim", type=int, default=48)
     parser.add_argument("--num-embeddings", type=int, default=256, help="codebook size K")
     parser.add_argument("--commitment-cost", type=float, default=0.25)
     parser.add_argument("--decay", type=float, default=0.99, help="0 disables the EMA codebook")
+    parser.add_argument(
+        "--restart-threshold",
+        type=float,
+        default=1.0,
+        help="reseed codes this rarely used; 0 disables dead-code restarts",
+    )
     parser.add_argument("--epochs", type=int, default=6)
     parser.add_argument("--prior-epochs", type=int, default=4)
     parser.add_argument("--prior-hidden", type=int, default=96)
@@ -137,6 +143,7 @@ def main() -> None:
         train=True,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        subset=args.train_subset,
     )
 
     model = VQVAE(
@@ -146,6 +153,7 @@ def main() -> None:
         num_embeddings=args.num_embeddings,
         commitment_cost=args.commitment_cost,
         decay=args.decay,
+        restart_threshold=args.restart_threshold,
     ).to(device)
     prior = PixelCNNPrior(args.num_embeddings, args.prior_hidden, args.prior_layers).to(device)
 
@@ -175,6 +183,7 @@ def main() -> None:
             "num_embeddings": args.num_embeddings,
             "commitment_cost": args.commitment_cost,
             "decay": args.decay,
+            "restart_threshold": args.restart_threshold,
             "prior_hidden": args.prior_hidden,
             "prior_layers": args.prior_layers,
             "prior_trained": args.prior_epochs > 0,
