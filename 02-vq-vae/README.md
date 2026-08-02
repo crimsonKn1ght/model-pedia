@@ -95,21 +95,28 @@ repository* and are not comparable to published FID values. See
 
 ## Codebook collapse and dead-code restarts
 
-Codebook collapse is not a hypothetical. On Fashion-MNIST with `K = 256`, a
-plain EMA codebook settles at a perplexity of around 5 -- five effective codes
-out of 256 -- because the update rule only ever touches codes that win an input.
-A code that stops winning receives no update, never moves, and stays dead
-forever, so the effective codebook shrinks monotonically.
+Early training is where the codebook is most fragile. A plain EMA codebook only
+updates entries that win at least one input, so a code that stops winning
+receives no update, never moves, and cannot come back. On Fashion-MNIST with
+`K = 256`, a plain EMA run starts with a perplexity around 4 -- roughly four
+effective codes out of 256 -- and climbs only slowly from there (about 39 after
+four epochs, on a run measured here). Most of the codebook sits unused for a
+long time, which is capacity paid for and not used.
 
-The fix implemented here is **dead-code restarts**: any code whose EMA cluster
-size falls below `--restart-threshold` is reseeded to a random encoder output
-from the current batch, putting it back somewhere the data actually is.
+**Dead-code restarts** address it directly: any code whose EMA cluster size
+falls below `--restart-threshold` is reseeded to a random encoder output from
+the current batch, putting it back somewhere the data actually is. Restarts are
+on by default; `--restart-threshold 0` disables them.
 
-Run it both ways to see the effect:
+Run it both ways and watch the `perplexity` column:
 
 ```bash
-python train.py --dataset fashion-mnist --epochs 2 --restart-threshold 0   # collapses
-python train.py --dataset fashion-mnist --epochs 2                         # restarts on
+python train.py --dataset fashion-mnist --epochs 3 --restart-threshold 0
+python train.py --dataset fashion-mnist --epochs 3
 ```
 
-Watch the `perplexity` column, and compare `codebook-usage.png` afterwards.
+Then compare `codebook-usage.png` and the `codebook_used` figure in
+`metrics.json`. The reconstruction error usually differs far less than the
+perplexity does, which is the point worth absorbing: a badly collapsed codebook
+can look fine on reconstruction while wasting most of its representational
+capacity, and only the usage statistics reveal it.

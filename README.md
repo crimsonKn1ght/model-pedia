@@ -47,13 +47,21 @@ python train.py
 python evaluate.py
 ```
 
-Every script takes `--help`. Three flags are shared by all of them:
+To check that every project works end to end:
+
+```bash
+./verify.sh            # all 11, in --quick mode
+./verify.sh 08-ddpm    # just one
+```
+
+Every script takes `--help`. Four flags are shared by all of them:
 
 | Flag | Purpose |
 |---|---|
 | `--quick` | run a handful of batches; verifies the pipeline in seconds |
 | `--device` | `auto` (default), `cpu`, `cuda`, `mps` |
 | `--data-root` | dataset location, shared across projects by default |
+| `--train-subset` | train on N images instead of the full split, for a predictable runtime |
 
 Datasets land in `data/` at the repository root and are shared, so MNIST is
 downloaded once no matter how many projects use it. Checkpoints and figures go
