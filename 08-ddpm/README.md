@@ -94,6 +94,37 @@ rather than copying them, so the three diffusion projects can never drift apart.
   diffusion does.
 * `samples.png`.
 
+## Reference run
+
+MNIST, 2500 optimizer steps, `base_channels=32`, 300 timesteps, cosine
+schedule, 0.84M parameters, CPU only (4 cores, 13.3 minutes to train):
+
+| Metric | Value |
+|---|---|
+| final noise MSE | 0.0324 |
+| FID (see note) | 46.6 |
+| KID | 3.67 +/- 0.20 |
+| precision / recall | 0.27 / 0.29 |
+| network evaluations per image | 300 |
+
+**This is the weakest generative result in the repository, and honestly so.**
+The DCGAN in project 03 reaches FID 2.94 on the same dataset in a comparable
+wall-clock budget. Diffusion is by far the most compute-hungry model here, and
+2500 steps on four CPU cores does not do it justice -- the samples are
+digit-shaped but rough, and precision/recall near 0.28 says both quality and
+coverage are limited.
+
+That is a statement about the budget, not the method. Diffusion overtakes GANs
+at scale, which is why it won; it simply does not get there in thirteen minutes
+on a laptop CPU. `--max-steps 20000` on a GPU is a different picture. The
+architecture, schedule and objective here are the real ones, so scaling the step
+count is the only change needed.
+
+The `noise MSE` figure is the honest progress signal: the target is unit
+Gaussian noise, so a network predicting zero scores exactly 1.0. Reaching 0.032
+means the model explains most of the noise, and it was still improving when the
+budget ran out.
+
 ## What to look at
 
 * The denoising trajectory typically shows coarse layout settling early and
