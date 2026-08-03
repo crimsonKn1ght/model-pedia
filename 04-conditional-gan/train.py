@@ -41,6 +41,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--aux-weight", type=float, default=1.0, help="ACGAN classification loss weight"
     )
+    parser.add_argument(
+        "--aux-on-fake",
+        action="store_true",
+        help="also train the discriminator's classifier on generated images, as in the "
+             "original ACGAN; this reliably collapses intra-class diversity",
+    )
     return parser
 
 
@@ -106,10 +112,20 @@ def main() -> None:
             fake_validity, fake_classes = discriminator(fake.detach(), fake_y)
             loss_d = adversarial(real_validity, ones * 0.9) + adversarial(fake_validity, zeros)
             if args.mode == "acgan":
-                # The classifier head learns from real and generated images alike.
-                loss_d = loss_d + args.aux_weight * (
-                    F.cross_entropy(real_classes, y) + F.cross_entropy(fake_classes, fake_y)
-                )
+                # The classifier head trains on real images by default.
+                #
+                # The original ACGAN also trains it on generated images. That
+                # creates a feedback loop: the generator collapses towards one
+                # maximally-classifiable prototype per class, the discriminator's
+                # classifier is then trained on those prototypes with their
+                # labels, and it rewards the generator for collapsing further.
+                # In practice this drives intra-class diversity to zero -- every
+                # sample of a class comes out identical, recall goes to 0, and
+                # no adversarial signal is strong enough to pull it back.
+                # Keeping the classifier grounded on real data breaks the loop.
+                loss_d = loss_d + args.aux_weight * F.cross_entropy(real_classes, y)
+                if args.aux_on_fake:
+                    loss_d = loss_d + args.aux_weight * F.cross_entropy(fake_classes, fake_y)
 
             opt_d.zero_grad(set_to_none=True)
             loss_d.backward()
@@ -157,6 +173,7 @@ def main() -> None:
             "num_classes": meta.num_classes,
             "latent_dim": args.latent_dim,
             "base_channels": args.base_channels,
+            "aux_on_fake": args.aux_on_fake,
         },
     )
     history.save(out_dir / "history.json")

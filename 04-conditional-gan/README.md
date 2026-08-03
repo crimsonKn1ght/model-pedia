@@ -74,6 +74,46 @@ Output in `outputs/evaluation/`:
 * `class-grid.png` -- one row per class, ten samples wide;
 * `fid-per-class.png`.
 
+## The ACGAN feedback loop, and why the default differs from the paper
+
+The original ACGAN trains the discriminator's classifier head on **both** real
+and generated images. Doing that here collapses the model completely, and the
+mechanism is worth understanding because it is not obvious from the loss:
+
+1. the generator drifts towards whichever image is most easily classified as
+   class `k`, because that minimises its auxiliary loss;
+2. the discriminator's classifier is then trained on *those* images, labelled
+   `k`, so it becomes ever more confident about that exact prototype;
+3. which makes the prototype an even better answer for the generator.
+
+Nothing in the objective opposes this. The adversarial term should, but a single
+sharp realistic digit satisfies it well enough. The end state is one image per
+class, identical for every `z` -- the noise input is ignored entirely.
+
+Measured here on MNIST, 8 epochs, with `--aux-on-fake`:
+
+| Metric | Value | Reading |
+|---|---|---|
+| precision | 0.76 | each sample looks real |
+| **recall** | **0.00** | **no diversity whatsoever** |
+| classifier accuracy | 0.20 | and the prototypes are mostly the wrong class |
+| worst-class FID | 1176 | some classes are far off |
+
+The class grid makes it unmistakable: every column within a row is the same
+image. Note that overall FID was 18.4 -- bad but not obviously catastrophic. The
+precision/recall split and the per-class breakdown are what expose it, which is
+the argument for reporting them.
+
+**The default here trains the classifier head on real images only**, which
+breaks the loop by keeping the classifier grounded in data the generator cannot
+influence. Pass `--aux-on-fake` to reproduce the paper's formulation and watch
+the collapse happen:
+
+```bash
+python train.py --aux-on-fake --out-dir outputs/aux-on-fake
+python evaluate.py --checkpoint outputs/aux-on-fake/conditional-gan.pt --out-dir outputs/aux-on-fake
+```
+
 ## What to look at
 
 * The class grid is the fastest diagnostic. Read down the rows: if row 3 does
