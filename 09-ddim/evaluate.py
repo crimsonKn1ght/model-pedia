@@ -120,6 +120,18 @@ def main() -> None:
         cfg["timesteps"],
     )
 
+    # Equivalence check. At eta=1 over every timestep, DDIM's update is
+    # algebraically the DDPM ancestral update, so these two rows must agree to
+    # within sampling noise. If they do not, the sampler is wrong and every
+    # comparison below it is meaningless -- so it is measured, not assumed.
+    equivalence = measure(
+        f"DDIM ({cfg['timesteps']}, eta=1)",
+        lambda n: sampler.sample(n, shape, device, num_steps=cfg["timesteps"], eta=1.0),
+        cfg["timesteps"],
+    )
+    gap = abs(equivalence["fid"] - baseline["fid"]) / max(baseline["fid"], 1e-9)
+    print(f"  equivalence check: {gap * 100:.1f}% FID gap against DDPM (small is correct)\n")
+
     for steps in step_counts:
         measure(
             f"DDIM ({steps})",
@@ -127,7 +139,7 @@ def main() -> None:
             steps,
         )
 
-    ddim_entries = [e for e in table if e["sampler"].startswith("DDIM")]
+    ddim_entries = [e for e in table if e["sampler"].startswith("DDIM") and "eta=1" not in e["sampler"]]
     viz.plot_line(
         [e["network_evaluations"] for e in ddim_entries],
         [e["fid"] for e in ddim_entries],
@@ -158,6 +170,8 @@ def main() -> None:
     speedup = baseline["seconds_per_image"] / min(e["seconds_per_image"] for e in ddim_entries)
     results = {
         "baseline_fid": baseline["fid"],
+        "equivalence_fid_eta1": equivalence["fid"],
+        "equivalence_relative_gap": gap,
         "baseline_seconds_per_image": baseline["seconds_per_image"],
         "max_speedup": speedup,
         "eta": args.eta,

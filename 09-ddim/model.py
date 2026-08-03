@@ -105,6 +105,13 @@ class DDIMSampler(nn.Module):
             x0 = diffusion.predict_x0(x, t, eps)
 
             alpha_bar = diffusion.alpha_bars[step]
+            # `predict_x0` clamps its output to the valid image range, which
+            # breaks the identity linking x0 and eps. The update below uses both
+            # terms, so leaving them inconsistent injects an error that grows as
+            # alpha_bar approaches 1 -- exactly where the fine detail is decided.
+            # Re-deriving eps from the clamped x0 keeps the pair consistent, and
+            # is what makes eta=1 reproduce DDPM's ancestral sampler.
+            eps = (x - alpha_bar.sqrt() * x0) / (1 - alpha_bar).clamp(min=1e-12).sqrt()
             alpha_bar_prev = (
                 diffusion.alpha_bars[prev_step]
                 if prev_step >= 0
