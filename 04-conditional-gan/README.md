@@ -22,23 +22,25 @@ two questions -- *is this real?* and *which class is it?* -- and the
 classification loss is applied to real and generated images alike. That extra
 signal pushes the generator towards class-distinctive samples.
 
-ACGAN tends to train more stably at the cost of a known failure mode: the
-generator can satisfy the classifier by producing an easily-classified prototype
-per class, reducing within-class diversity. The per-class FID in `evaluate.py`
-is there to catch exactly that.
+ACGAN is often described as the more stable of the two. That is not what the
+measurements in this project show: at equal budget its known failure mode --
+the generator satisfying the classifier with one easily-classified prototype per
+class -- dominates completely, and intra-class diversity collapses to nothing.
+The per-class FID and the precision/recall split in `evaluate.py` exist to catch
+exactly that, and here they do.
 
 ## Run it
 
 ```bash
 python download_data.py
-python train.py                    # ACGAN on MNIST
+python train.py                    # cGAN on MNIST
 python evaluate.py
 ```
 
 Useful variations:
 
 ```bash
-python train.py --mode cgan                 # the concatenation-style cGAN
+python train.py --mode acgan                # the auxiliary-classifier variant
 python train.py --dataset cifar10 --epochs 20 --base-channels 64
 python train.py --aux-weight 0.1            # weaken ACGAN's classification loss
 ```
@@ -73,6 +75,30 @@ Output in `outputs/evaluation/`:
   per-class FID with mean and worst;
 * `class-grid.png` -- one row per class, ten samples wide;
 * `fid-per-class.png`.
+
+## Reference run, and why cGAN is the default
+
+MNIST, 8 epochs, `base_channels=32`, CPU only (about 16 minutes each). All three
+rows use the identical generator, discriminator trunk, budget and metric space,
+so the differences are attributable to the conditioning scheme alone:
+
+| Variant | classifier accuracy | FID | worst-class FID | precision | recall |
+|---|---|---|---|---|---|
+| **cGAN** (default) | **0.976** | **0.795** | **15.2** | 0.864 | **0.769** |
+| ACGAN, `aux_weight=1.0` | 0.623 | 12.8 | 308 | 0.701 | 0.000 |
+| ACGAN, `aux_weight=0.2` | 0.306 | 16.6 | 493 | 0.460 | 0.000 |
+
+The cGAN is not marginally better, it is better by an order of magnitude, and
+its FID of 0.795 is the best generative score in this repository -- ahead of the
+unconditional DCGAN's 2.94 on the same data. That is not a surprise once stated:
+the label tells the generator what to draw and gives the discriminator a sharper
+question to ask, so conditioning makes the problem easier, not harder.
+
+**Every ACGAN configuration tried here collapses to recall 0.00.** Lowering the
+auxiliary weight from 1.0 to 0.2 did not rescue it -- it made the conditioning
+worse without restoring diversity. The auxiliary classification objective is
+what drives the collapse, and weakening it weakens the conditioning before it
+weakens the collapse.
 
 ## The ACGAN feedback loop, and why the default differs from the paper
 
@@ -116,13 +142,17 @@ python evaluate.py --checkpoint outputs/aux-on-fake/conditional-gan.pt --out-dir
 
 ## What to look at
 
-* The class grid is the fastest diagnostic. Read down the rows: if row 3 does
-  not contain 3s, conditioning failed regardless of what FID says.
-* Compare `--mode cgan` against `--mode acgan` at equal epochs. ACGAN usually
-  reaches higher `classifier_accuracy` sooner; check whether it also shows less
-  variety within each row.
-* Push `--aux-weight` up to 5 and watch `classifier_accuracy` rise while the
-  per-class FID gets worse. That trade-off is ACGAN's characteristic weakness.
+* The class grid is the fastest diagnostic, and it has two axes. Read *down* the
+  rows to check conditioning: if row 3 does not contain 3s, the label is being
+  ignored regardless of what FID says. Then read *across* a row to check
+  diversity: if the samples are identical, the model has collapsed and only
+  recall will tell you.
+* Run `--mode acgan` and compare. The measured outcome here contradicts the
+  usual framing -- ACGAN does not merely trade diversity for conditioning
+  accuracy, it loses on both at this budget.
+* `recall` is the number to watch during any conditional GAN experiment. It went
+  to exactly 0.00 in every ACGAN configuration tried here while FID stayed in a
+  range that looks unremarkable. FID alone would not have caught it.
 
 ## A note on FID and KID in this repository
 

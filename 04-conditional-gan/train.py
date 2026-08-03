@@ -1,8 +1,12 @@
 """Train a class-conditional GAN (cGAN or ACGAN).
 
-    python train.py                          # ACGAN on MNIST
-    python train.py --mode cgan              # the concatenation-style cGAN
+    python train.py                          # cGAN on MNIST (the default)
+    python train.py --mode acgan             # the auxiliary-classifier variant
     python train.py --dataset cifar10 --epochs 15
+
+The default is the concatenation-style cGAN because, measured on MNIST at equal
+budget, it is dramatically better here: FID 0.80 with recall 0.77, against
+ACGAN's FID 12.8 with recall 0.00. See the README for the ablation.
 
 Each epoch writes a class grid: row ``k`` contains samples the generator was
 asked to make of class ``k``.  Reading down the rows is the fastest way to see
@@ -30,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     utils.add_common_args(parser)
     parser.add_argument("--dataset", default="mnist", choices=data_mod.DATASET_NAMES)
-    parser.add_argument("--mode", default="acgan", choices=["cgan", "acgan"])
+    parser.add_argument("--mode", default="cgan", choices=["cgan", "acgan"])
     parser.add_argument("--image-size", type=int, default=32)
     parser.add_argument("--latent-dim", type=int, default=100)
     parser.add_argument("--base-channels", type=int, default=32)
