@@ -136,8 +136,10 @@ must invert its forward pass. Nothing is downloaded and nothing is trained.
 **`scripts/smoke_test.py`** checks that the *pipelines run*. It executes
 `train.py`, `evaluate.py` and each project's study script on synthetic tensors,
 verifying imports, shapes, checkpoint round-trips and figure writing for all
-twenty projects, then cleans up after itself. It runs the metric self-test first,
-since it otherwise only proves a number was produced, not that it was right.
+twenty projects in about eight minutes on four CPU cores, then cleans up after
+itself. It runs the metric self-test first, since it otherwise only proves a
+number was produced, not that it was right. `--skip-metrics` opts out;
+`--projects` narrows it to a subset.
 
 ## A note on FID
 
