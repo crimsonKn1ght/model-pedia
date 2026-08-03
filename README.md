@@ -114,13 +114,30 @@ A GPU is not required anywhere. If you have one, raise `--epochs` and drop
 ## Checking the repository
 
 ```bash
-python scripts/smoke_test.py
+python scripts/smoke_test.py       # metrics, then every project's pipeline
+python scripts/metric_selftest.py  # just the metrics, ~4 seconds
 ```
 
-Runs `train.py`, `evaluate.py` and each project's study script on synthetic
-data, with no downloads and no pretrained weights. It verifies imports, shapes,
-checkpoint round-trips and figure writing for all ten projects in about three
-minutes, and cleans up after itself.
+Two things get checked, and the distinction matters.
+
+**`scripts/metric_selftest.py`** checks that the metrics are *correct*. Nearly
+every number in this repository comes from a metric implemented here rather than
+imported - confusion matrices and F1, PSNR and SSIM, IoU and Dice, NMS and mean
+average precision, BLEU, METEOR and CIDEr-D, FID, KID, generative
+precision/recall, bits per dimension - so a mistake in one of them quietly
+corrupts every result downstream. Each of the 96 checks feeds in an input whose
+answer is known in advance and asserts the metric returns it: FID between two unit
+Gaussians a distance `d` apart must be exactly `d^2`; a codebook used uniformly
+must have perplexity exactly equal to its size; the majority-class baseline on a
+90/10 mask must give pixel accuracy 0.90 and mean IoU exactly 0.45; AP with one of
+two objects found must be exactly 51/101 under the COCO rule; RealNVP's inverse
+must invert its forward pass. Nothing is downloaded and nothing is trained.
+
+**`scripts/smoke_test.py`** checks that the *pipelines run*. It executes
+`train.py`, `evaluate.py` and each project's study script on synthetic tensors,
+verifying imports, shapes, checkpoint round-trips and figure writing for all
+twenty projects, then cleans up after itself. It runs the metric self-test first,
+since it otherwise only proves a number was produced, not that it was right.
 
 ## A note on FID
 
@@ -132,8 +149,13 @@ published FID.** They are comparable within this repository - the same ruler for
 every study - which is what the comparisons need. Every project's `metrics.json` records which
 feature network was used, and `utils.py` explains it at the top.
 
-Project 11's bits-per-dimension is the exception: it is exact and uses the standard convention,
-so it *is* comparable with published numbers.
+The *implementation* is a separate question from the feature space, and it is checked:
+`scripts/metric_selftest.py` pins FID against the analytic Gaussian cases where the answer is
+known in closed form, confirms KID's estimator is unbiased where FID's is not, and reproduces
+the mode-collapse signature (high precision, near-zero recall) on constructed inputs.
+
+Project 11's bits-per-dimension is the exception to the comparability caveat: it is exact and
+uses the standard convention, so it *is* comparable with published numbers.
 
 ## Roadmap
 
@@ -145,4 +167,6 @@ Python 3.9+, PyTorch 2.0+, torchvision, numpy, matplotlib, tqdm, Pillow. Nothing
 the metrics that would normally justify a heavier dependency are implemented in the
 projects themselves, and are short enough to be worth reading once: confusion matrices,
 F1, PSNR and SSIM; IoU and Dice; non-maximum suppression and mean average precision;
-BLEU, METEOR and CIDEr-D.
+BLEU, METEOR and CIDEr-D. Writing them by hand is only defensible if they are also
+checked, which is what `scripts/metric_selftest.py` is for - including the matrix square
+root behind FID, which is where scipy would otherwise be the one dependency needed.

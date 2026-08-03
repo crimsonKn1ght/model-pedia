@@ -2,6 +2,11 @@
 
     python scripts/smoke_test.py
     python scripts/smoke_test.py --projects 01_classic_classifier 04_autoencoder
+    python scripts/smoke_test.py --skip-metrics
+
+``scripts/metric_selftest.py`` runs first, because this script deliberately says
+nothing about whether a number is correct - only that one was produced - and a
+broken metric would sail through every check below.
 
 No dataset is downloaded and no pretrained weight is fetched: each project's
 ``--smoke-test`` flag swaps in a tiny synthetic split. This checks that the
@@ -220,9 +225,27 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Smoke-test every project.")
     parser.add_argument("--projects", nargs="+", default=sorted(PROJECTS), choices=sorted(PROJECTS))
     parser.add_argument("--keep-output", action="store_true", help="do not delete the temp dirs")
+    parser.add_argument("--skip-metrics", action="store_true", help="skip the metric self-test")
     args = parser.parse_args()
 
     failures = []
+
+    # The metrics come first. This script only checks that the pipelines run; if
+    # FID or mean IoU or BLEU is wrong, every pipeline still runs and every number
+    # they report is meaningless, so the metrics are checked against known answers
+    # before anything else is trusted.
+    if not args.skip_metrics:
+        print(f"{'metric self-test':26s} ... ", end="", flush=True)
+        started = time.time()
+        ok, log = run([sys.executable, "scripts/metric_selftest.py"], REPO_ROOT)
+        elapsed = time.time() - started
+        if ok:
+            passed = [line for line in log.splitlines() if line.startswith("all ")]
+            print(f"ok ({elapsed:.1f}s)  [{passed[-1] if passed else 'passed'}]")
+        else:
+            print(f"FAILED ({elapsed:.1f}s)")
+            failures.append(("metric self-test", log))
+
     for project in args.projects:
         print(f"{project:26s} ... ", end="", flush=True)
         ok, elapsed, detail = smoke_one(project, PROJECTS[project], args.keep_output)
@@ -232,13 +255,14 @@ def main() -> int:
             print(f"FAILED ({elapsed:.1f}s)")
             failures.append((project, detail))
 
+    total = len(args.projects) + (0 if args.skip_metrics else 1)
     if failures:
-        for project, detail in failures:
-            print(f"\n===== {project} =====\n{detail.strip()[-3000:]}")
-        print(f"\n{len(failures)} of {len(args.projects)} projects failed")
+        for name, detail in failures:
+            print(f"\n===== {name} =====\n{detail.strip()[-3000:]}")
+        print(f"\n{len(failures)} of {total} checks failed")
         return 1
 
-    print(f"\nall {len(args.projects)} projects passed")
+    print(f"\nall {total} checks passed")
     return 0
 
 
