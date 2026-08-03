@@ -50,9 +50,17 @@ python evaluate.py
 To check that every project works end to end:
 
 ```bash
-./verify.sh            # all 11, in --quick mode
-./verify.sh 08-ddpm    # just one
+./verify.sh            # metric self-test, then all 11 in --quick mode
+./verify.sh 08-ddpm    # just one project
+python -m common.selftest   # just the metric checks
 ```
+
+The metric self-test runs first and deliberately so. It pins the properties the
+reported numbers depend on -- FID of a distribution against itself is zero, FID
+grows with corruption, and a collapsed generator shows high precision with
+near-zero recall. That last check is not hypothetical: a conditional GAN here
+reported precision 0.70 with recall exactly 0.00, and these checks are what
+established the metric was right and the model was wrong.
 
 Every script takes `--help`. Four flags are shared by all of them:
 

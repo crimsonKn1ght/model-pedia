@@ -33,6 +33,16 @@ check() {
   rm -f /tmp/verify-$$.log
 }
 
+# The metric code is checked first: if FID or precision/recall are wrong, every
+# number the projects report downstream is meaningless.
+printf '%-22s %s ... ' "common" "metric self-test"
+if python3 -m common.selftest >/tmp/verify-$$.log 2>&1; then
+  echo "ok"; PASSED=$((PASSED + 1))
+else
+  echo "FAILED"; sed 's/^/    /' /tmp/verify-$$.log | tail -15; FAILED=$((FAILED + 1))
+fi
+rm -f /tmp/verify-$$.log
+
 Q="--quick --num-workers 0"
 
 # shellcheck disable=SC2086
