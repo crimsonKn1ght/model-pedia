@@ -5,7 +5,7 @@
 # models are any good -- the numbers a quick run produces are meaningless.
 #
 #   ./verify.sh              # all projects
-#   ./verify.sh 08-ddpm      # just one
+#   ./verify.sh 13_ddpm      # just one
 #
 # Expect it to take several minutes on a CPU. The diffusion projects dominate,
 # because sampling is a sequential loop over timesteps.
@@ -47,29 +47,29 @@ Q="--quick --num-workers 0"
 
 # shellcheck disable=SC2086
 {
-check 01-vae              python3 train.py $Q
-check 01-vae              python3 evaluate.py $Q
-check 02-vq-vae           python3 train.py $Q --dataset shapes
-check 02-vq-vae           python3 evaluate.py $Q
-check 03-dcgan            python3 train.py $Q
-check 03-dcgan            python3 evaluate.py $Q
-check 04-conditional-gan  python3 train.py $Q
-check 04-conditional-gan  python3 evaluate.py $Q
-check 05-pix2pix          python3 train.py $Q --dataset shapes
-check 05-pix2pix          python3 evaluate.py $Q
-check 06-cyclegan         python3 train.py $Q --task datasets --domain-a mnist --domain-b fashion-mnist
-check 06-cyclegan         python3 evaluate.py $Q
-check 07-realnvp          python3 train.py $Q
-check 07-realnvp          python3 evaluate.py $Q
-check 08-ddpm             python3 train.py $Q
-check 08-ddpm             python3 evaluate.py $Q
-check 09-ddim             python3 train.py --num-workers 0
-check 09-ddim             python3 evaluate.py $Q
-check 10-latent-diffusion python3 train.py $Q
-check 10-latent-diffusion python3 evaluate.py $Q
-check 11-vit              python3 train.py $Q --dataset shapes
-check 11-vit              python3 train.py $Q --dataset shapes --model resnet18
-check 11-vit              python3 evaluate.py $Q
+check 06_vae              python3 train.py $Q
+check 06_vae              python3 evaluate.py $Q
+check 07_vq_vae           python3 train.py $Q --dataset shapes
+check 07_vq_vae           python3 evaluate.py $Q
+check 08_dcgan            python3 train.py $Q
+check 08_dcgan            python3 evaluate.py $Q
+check 09_conditional_gan  python3 train.py $Q
+check 09_conditional_gan  python3 evaluate.py $Q
+check 10_pix2pix          python3 train.py $Q --dataset shapes
+check 10_pix2pix          python3 evaluate.py $Q
+check 11_cyclegan         python3 train.py $Q --task datasets --domain-a mnist --domain-b fashion-mnist
+check 11_cyclegan         python3 evaluate.py $Q
+check 12_realnvp          python3 train.py $Q
+check 12_realnvp          python3 evaluate.py $Q
+check 13_ddpm             python3 train.py $Q
+check 13_ddpm             python3 evaluate.py $Q
+check 14_ddim             python3 train.py --num-workers 0
+check 14_ddim             python3 evaluate.py $Q
+check 15_latent_diffusion python3 train.py $Q
+check 15_latent_diffusion python3 evaluate.py $Q
+check 16_vit              python3 train.py $Q --dataset shapes
+check 16_vit              python3 train.py $Q --dataset shapes --model resnet18
+check 16_vit              python3 evaluate.py $Q
 }
 
 echo

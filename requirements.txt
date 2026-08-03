@@ -1,11 +1,9 @@
-# Install with:  pip install -r requirements.txt
-#
-# For a CPU-only machine, install torch from the CPU wheel index instead:
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 torch>=2.0
 torchvision>=0.15
 numpy>=1.24
-scipy>=1.10
 matplotlib>=3.7
 tqdm>=4.65
+# Part II additions: scipy for the matrix square root behind FID, Pillow for the
+# procedural and folder-backed datasets.
+scipy>=1.10
 Pillow>=9.5

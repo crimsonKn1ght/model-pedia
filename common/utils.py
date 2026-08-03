@@ -192,8 +192,11 @@ def add_common_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--quick",
+        "--smoke-test",
+        dest="quick",
         action="store_true",
-        help="tiny run over a few batches, used to verify the pipeline end to end",
+        help="tiny run over a few batches, used to verify the pipeline end to end "
+        "(--smoke-test is accepted as an alias, matching part I)",
     )
     return parser
 

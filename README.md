@@ -1,94 +1,200 @@
 # model-pedia
 
-Eleven self-contained projects covering the main families of generative image
-models, plus a Vision Transformer for classification. Each one is small enough
-to train on a laptop CPU in minutes, and each is built around the one idea that
-makes its model family work.
+Small, self-contained reference implementations of the models you meet on the
+way into deep learning. Each one is a folder you can read in a sitting and run
+in a few minutes on a laptop CPU.
 
-Every project follows the same shape:
+Every project answers the same three questions with runnable code: **what is
+the model**, **what does it train on**, and **how do you know it worked**. The
+last one gets as much attention as the first two - each project ends in a
+test-set number next to the baseline that number should be compared against,
+and a figure that shows the idea rather than just the score.
 
-```
-NN-name/
-  README.md          the idea, what to run, what the numbers mean
-  model.py           the architecture and its loss
-  download_data.py   fetch the datasets
-  train.py           training loop, writes checkpoints and per-epoch figures
-  evaluate.py        held-out evaluation, writes metrics.json and figures
-```
+## Projects
 
-## The projects
+### Part I - supervised learning and representations
 
-| # | Project | Model | Task | Default dataset |
+| # | Project | Model | Dataset | What it shows |
 |---|---|---|---|---|
-| [01](01-vae/) | Variational autoencoder | Conv-VAE, beta-VAE | reconstruct and generate | MNIST |
-| [02](02-vq-vae/) | Vector-quantized AE | VQ-VAE + PixelCNN prior | discrete representation, generation | CIFAR-10 |
-| [03](03-dcgan/) | GAN | DCGAN | unconditional generation | MNIST |
-| [04](04-conditional-gan/) | Conditional GAN | cGAN, ACGAN | class-controlled generation | MNIST |
-| [05](05-pix2pix/) | Image-to-image, paired | Pix2Pix | edges -> photo, facades | CIFAR-10 |
-| [06](06-cyclegan/) | Image-to-image, unpaired | CycleGAN | domain translation | CIFAR-10 |
-| [07](07-realnvp/) | Normalizing flow | RealNVP | exact-likelihood density modelling | MNIST |
-| [08](08-ddpm/) | Diffusion | DDPM with a U-Net | generation and denoising | MNIST |
-| [09](09-ddim/) | Faster diffusion sampling | DDIM | speed/quality against DDPM | reuses 08 |
-| [10](10-latent-diffusion/) | Latent diffusion | autoencoder + diffusion | efficient generation | Fashion-MNIST |
-| [11](11-vit/) | Vision Transformer | ViT-Tiny vs ResNet-18 | classification at matched compute | CIFAR-10 |
+| 01 | [Classic classifier](01_classic_classifier/) | MLP, LeNet-5 | MNIST, Fashion-MNIST | Weight sharing beats raw capacity: LeNet wins with a quarter of the parameters |
+| 02 | [CNN classifier](02_cnn_classifier/) | ResNet-20/32/18, plain-net control | CIFAR-10/100, SVHN | What the identity shortcut is actually worth, measured against the same net without it |
+| 03 | [Transfer learning](03_transfer_learning/) | Pretrained ResNet-18, MobileNetV3, EfficientNet-B0 | Flowers-102, Oxford-IIIT Pets | Frozen linear probe vs full fine-tuning, with a random-init control |
+| 04 | [Autoencoder](04_autoencoder/) | Convolutional AE | Fashion-MNIST, CIFAR-10 | A bottleneck turns compression into representation learning |
+| 05 | [Denoising autoencoder](05_denoising_autoencoder/) | U-Net, no-skip control | CIFAR-10, any image folder | A learned image prior, and where it stops generalising |
 
-Projects 09 and 10 import the U-Net and diffusion process from project 08 rather
+### Part II - generative models
+
+| # | Project | Model | Dataset | What it shows |
+|---|---|---|---|---|
+| 06 | [Variational autoencoder](06_vae/) | Conv-VAE, beta-VAE | MNIST, Fashion-MNIST, CelebA | The ELBO, and why a KL term makes a latent space you can sample from |
+| 07 | [Vector-quantized AE](07_vq_vae/) | VQ-VAE + PixelCNN prior | CIFAR-10, CelebA | A discrete latent, and the second model you then need in order to sample |
+| 08 | [GAN](08_dcgan/) | DCGAN | MNIST, Fashion-MNIST, CIFAR-10 | Adversarial training instead of likelihood, and why the samples are sharper |
+| 09 | [Conditional GAN](09_conditional_gan/) | cGAN, ACGAN control | MNIST, CIFAR-10 | Control over what gets generated, and how to check the label is obeyed |
+| 10 | [Image-to-image, paired](10_pix2pix/) | Pix2Pix (U-Net + PatchGAN) | edges-to-photo, Facades | Skip connections and a patch discriminator; what the L1 term is holding up |
+| 11 | [Image-to-image, unpaired](11_cyclegan/) | CycleGAN | CIFAR-10 classes, horse-to-zebra | Cycle consistency as the constraint that replaces paired data |
+| 12 | [Normalizing flow](12_realnvp/) | RealNVP | MNIST, CIFAR-10 | An exact likelihood, and the price paid for it in sample quality |
+| 13 | [Diffusion](13_ddpm/) | DDPM with a U-Net | MNIST, CIFAR-10, CelebA | Generation as learned denoising, with the simplest loss in the repository |
+| 14 | [Faster diffusion sampling](14_ddim/) | DDIM | reuses project 13 | 15x fewer network evaluations at the same quality, no retraining |
+| 15 | [Latent diffusion](15_latent_diffusion/) | Autoencoder + diffusion | Fashion-MNIST, CelebA | Diffusing in a compressed space: better samples for half the compute |
+| 16 | [Vision Transformer](16_vit/) | ViT-Tiny, ResNet-18 baseline | Fashion-MNIST, CIFAR-10, Flowers-102 | Inductive bias vs expressiveness, compared at matched compute |
+
+Projects 14 and 15 import the U-Net and diffusion process from project 13 rather
 than copying them, so the sampler comparison and the latent-space variant always
 run against the same architecture.
 
-## Getting started
+## Quickstart
 
 ```bash
 pip install -r requirements.txt
 
-cd 01-vae
-python download_data.py
-python train.py
-python evaluate.py
+cd 01_classic_classifier
+python data.py --dataset fashion-mnist     # download
+python train.py --model lenet --epochs 5   # train
+python evaluate.py --checkpoint outputs/fashion-mnist_lenet/best.pt
 ```
 
-To check that every project works end to end:
+Every project follows the same layout, so once you have read one you can
+navigate the rest:
 
-```bash
-./verify.sh            # metric self-test, then all 11 in --quick mode
-./verify.sh 08-ddpm    # just one project
-python -m common.selftest   # just the metric checks
-```
-
-The metric self-test runs first and deliberately so. It pins the properties the
-reported numbers depend on -- FID of a distribution against itself is zero, FID
-grows with corruption, and a collapsed generator shows high precision with
-near-zero recall. That last check is not hypothetical: a conditional GAN here
-reported precision 0.70 with recall exactly 0.00, and these checks are what
-established the metric was right and the model was wrong.
-
-Every script takes `--help`. Four flags are shared by all of them:
-
-| Flag | Purpose |
+| File | Role |
 |---|---|
-| `--quick` | run a handful of batches; verifies the pipeline in seconds |
-| `--device` | `auto` (default), `cpu`, `cuda`, `mps` |
-| `--data-root` | dataset location, shared across projects by default |
-| `--train-subset` | train on N images instead of the full split, for a predictable runtime |
+| `data.py` | Downloads the dataset and builds the splits. Runnable on its own |
+| `model.py` | The architecture, and nothing else. Runnable on its own to print shapes and parameter counts |
+| `train.py` | Training loop; writes a checkpoint, `history.json` and a curves figure |
+| `evaluate.py` | Loads a checkpoint, scores the **test** split, writes `metrics.json` and figures |
+| `compare.py` / `sweep.py` | A controlled study: one thing changes, everything else is held fixed |
+| `utils.py` (part I) / `common/` (part II) | Seeding, device selection, metrics, plotting |
 
-Datasets land in `data/` at the repository root and are shared, so MNIST is
-downloaded once no matter how many projects use it. Checkpoints and figures go
-to each project's own `outputs/`. Both directories are git-ignored.
+Shared conventions:
 
-### On a CPU-only machine
+- `--device auto` picks CUDA, then MPS, then CPU. Every script takes `--seed`.
+- The validation split drives checkpoint selection; the test split is touched
+  only by `evaluate.py`.
+- Results land in `<project>/outputs/`, git-ignored. Part I keeps datasets in
+  `<project>/data/`; part II shares one `data/` at the repository root, so MNIST
+  is downloaded once no matter how many projects use it.
+- Part I's scripts take `--smoke-test`; part II's take `--quick`. Both run the
+  whole pipeline on a handful of batches so you can check it works before
+  committing to a download or a training run.
+- Part II adds `--train-subset N` for a predictable runtime on a small machine.
 
-Install the CPU wheels, which are far smaller than the CUDA build:
+### Why part II has a shared `common/`
+
+Part I gives every project its own `utils.py`, which is the right call when the
+helpers are seeding, plotting and an accuracy function. Part II's evaluation is
+heavier - FID, KID, precision/recall, SSIM and a cached per-dataset feature
+extractor come to several hundred lines - and copying that into eleven folders
+would guarantee they drift apart. It lives in `common/` instead, and the
+per-project file contract is otherwise identical.
+
+## Runtimes
+
+Defaults are tuned so that each project finishes in a few minutes on four CPU
+cores, while still showing the effect it is about. Where that meant training on
+a subset, the README says so and gives the command for the full run.
+
+| Project | Default run | Download |
+|---|---|---|
+| 01 Classic classifier | ~2 min | 12-30 MB |
+| 02 CNN classifier | ~7 min (15k-image subset) | 170 MB |
+| 03 Transfer learning | ~2 min frozen, ~6 min fine-tune | 345 MB + backbone weights |
+| 04 Autoencoder | ~3 min | 30 MB |
+| 05 Denoising autoencoder | ~5 min | 170 MB |
+| 06 Variational autoencoder | ~4 min | 12 MB |
+| 07 Vector-quantized AE | ~8 min | 30-170 MB |
+| 08 GAN | ~9 min | 12 MB |
+| 09 Conditional GAN | ~16 min | 12 MB |
+| 10 Image-to-image, paired | ~8 min | 30 MB |
+| 11 Image-to-image, unpaired | ~10 min | 42 MB |
+| 12 Normalizing flow | ~15 min | 12 MB |
+| 13 Diffusion | ~13 min | 12 MB |
+| 14 Faster diffusion sampling | ~10 min, no training | reuses 13 |
+| 15 Latent diffusion | ~7 min | 30 MB |
+| 16 Vision Transformer | ~7 min ResNet, ~17 min ViT | 30 MB |
+
+A GPU is not required anywhere. If you have one, raise `--epochs` (or
+`--max-steps` for the diffusion projects) and drop `--train-subset` for numbers
+comparable with the literature. The diffusion projects are the ones that most
+repay a GPU: project 13 is visibly undertrained at its CPU default, and says so.
+
+## Checking the repository
 
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements.txt
+python scripts/smoke_test.py    # part I, on synthetic data, no downloads
+./verify.sh                     # part II, every project in --quick mode
+python -m common.selftest       # part II, the metric checks alone
 ```
 
-Defaults throughout are tuned for a 4-core CPU: most projects finish in 5-15
-minutes and produce results that show what the model actually does. They are
-deliberately *not* tuned for state-of-the-art numbers. On a GPU, raise
-`--epochs` / `--max-steps` and `--base-channels`, and switch to the larger
-datasets suggested in each project's README.
+`verify.sh` runs the metric self-test first, and deliberately so. It pins the
+properties the reported numbers depend on: FID of a distribution against itself
+is zero, FID grows with corruption, and a collapsed generator shows high
+precision with near-zero recall. That last check is not hypothetical - a
+conditional GAN here reported precision 0.70 with recall exactly 0.00, and these
+checks are what established the metric was right and the model was wrong.
+
+## How the generative metrics work
+
+Part II reports two numbers that are standard and comparable to published work:
+**bits per dimension** (project 12) and **classification accuracy** (project 16).
+
+**FID and KID here are not.** Published FID uses an ImageNet-trained
+InceptionV3, which is a poor fit for 32x32 greyscale digits and a heavy
+dependency for a repository whose whole premise is a short requirements file.
+These projects compute the same statistics in a **small per-dataset feature
+space**: a compact CNN trained once per dataset on first use, cached under
+`outputs/feature-extractors/`. So:
+
+* the scores are directly comparable **between projects here**, because every
+  project reuses the same cached extractor for a given dataset;
+* they are **not** comparable to FID values quoted in papers;
+* lower is still better, as usual.
+
+Pass `--feature-extractor inception` to any part II `evaluate.py` for
+literature-comparable values, if the torchvision weights are available to you.
+
+Beyond FID, each project reports the metric that actually diagnoses its own
+model: precision/recall for the GANs, codebook perplexity for VQ-VAE, cycle
+error for CycleGAN, an invertibility check for RealNVP, per-class FID and
+classifier agreement for the conditional GAN, and the stage-1 floor for latent
+diffusion. A single headline number rarely says anything useful on its own.
+
+## Measured results
+
+Every part II project was trained and evaluated on four CPU cores with no GPU.
+FID uses each dataset's own cached feature space, so numbers are comparable
+down a group and not across groups or to published work.
+
+**MNIST**, comparable budgets:
+
+| Project | FID | precision / recall | Also |
+|---|---|---|---|
+| 09 Conditional GAN | **0.80** | 0.86 / 0.77 | 97.6% conditioning accuracy |
+| 08 DCGAN | 2.94 | 0.70 / 0.87 | |
+| 06 VAE | 11.6 | 0.68 / 0.74 | 0.207 bits/dim (ELBO bound) |
+| 12 RealNVP | 22.8 | 0.51 / 0.44 | **1.713 bits/dim, exact** |
+| 13 DDPM | 46.6 | 0.27 / 0.29 | 300 network evals per image |
+| 14 DDIM | 178 at 20 evals | | **15x fewer evals, flat FID** |
+
+**Fashion-MNIST**, 20000-image subsets:
+
+| Project | Headline | Note |
+|---|---|---|
+| 10 Pix2Pix | FID 0.53, SSIM 0.765 | paired translation is the easiest task here |
+| 07 VQ-VAE | recon FID 1.90, sample FID 10.1 | 256/256 codes used, 16x compression |
+| 11 CycleGAN | FID 6.6 / 13.6 | cycle SSIM 0.89 / 0.68 |
+| 15 Latent diffusion | FID 37.8 | beats pixel-space DDPM at half the training time |
+| 16 ViT vs ResNet-18 | 0.826 vs **0.920** | the CNN wins on accuracy *and* FLOPs |
+
+Three of these are worth reading twice. **RealNVP has the best likelihood and
+the worst samples**, the cleanest demonstration here that the two objectives
+differ. **The ViT loses to the ResNet while spending 25 percent more compute**,
+which is why that comparison carries a FLOPs column. And **latent diffusion
+beats pixel-space diffusion on both quality and cost**, which is the whole
+reason the method exists.
+
+These come from short CPU runs and are not tuned. Project 13 in particular is
+undertrained at this budget and its README says so; raising `--max-steps` on a
+GPU changes that picture substantially.
 
 ## Datasets
 
@@ -106,106 +212,18 @@ and unzip it so images sit at `data/celeba/img_align_celeba/*.jpg`. Every
 project that offers CelebA also works on a smaller dataset, so it is always
 optional.
 
-`shapes` exists so any pipeline can be run and smoke-tested with no network
-access at all. It is deliberately easy -- use it to check that something runs,
-then switch to real data for results that mean anything.
+`shapes` exists so any part II pipeline can be run with no network access at
+all. It is deliberately easy - use it to check that something runs, then switch
+to real data for results that mean anything.
 
-## How the metrics work
+## Roadmap
 
-Two of the reported numbers are standard and comparable to published work:
-**bits per dimension** (project 07) and **classification accuracy** (project 11).
+Still to come, roughly in order: self-supervised learning, masked image
+modelling, semantic segmentation, object detection and image captioning.
 
-**FID and KID here are not.** Published FID uses an ImageNet-trained
-InceptionV3, which is a poor fit for 32x32 greyscale digits and a heavy
-dependency for a lightweight project. These projects instead compute the same
-statistics in a **small per-dataset feature space**: a compact CNN is trained
-once per dataset on first use (seconds on a CPU) and cached under
-`outputs/feature-extractors/`. So:
+## Requirements
 
-* the scores are directly comparable **between projects in this repository**,
-  because every project reuses the same cached extractor for a given dataset;
-* they are **not** comparable to FID values quoted in papers;
-* lower is still better, as usual.
-
-Pass `--feature-extractor inception` to any `evaluate.py` for literature-
-comparable values, if the torchvision weights are available to you.
-
-Beyond FID, each project reports the metrics that actually diagnose its own
-model: precision/recall for GANs, codebook perplexity for VQ-VAE, cycle error
-for CycleGAN, an invertibility check for RealNVP, per-class FID and classifier
-agreement for the conditional GAN, and the stage-1 floor for latent diffusion. A
-single headline number rarely says anything useful on its own, and each README
-explains what its numbers are for.
-
-## Measured results
-
-Every project below was trained and evaluated on a 4-core CPU with no GPU. The
-FID column uses each dataset's own cached feature space, so numbers are
-comparable down a dataset group and not across groups or to published work.
-
-**MNIST**, comparable budgets:
-
-| Project | FID | precision / recall | other |
-|---|---|---|---|
-| 04 conditional GAN (cGAN) | **0.80** | 0.86 / 0.77 | 97.6% conditioning accuracy |
-| 03 DCGAN | 2.94 | 0.70 / 0.87 | |
-| 01 VAE | 11.6 | 0.68 / 0.74 | 0.207 bits/dim (ELBO bound) |
-| 07 RealNVP | 22.8 | 0.51 / 0.44 | **1.713 bits/dim, exact** |
-| 08 DDPM | 46.6 | 0.27 / 0.29 | 300 evals/image |
-| 09 DDIM | 178 at 20 evals | | **15x fewer evals, flat FID** |
-
-**Fashion-MNIST**, 20000-image subsets:
-
-| Project | Headline | Note |
-|---|---|---|
-| 05 Pix2Pix | FID 0.53, SSIM 0.765 | paired translation is the easiest task here |
-| 02 VQ-VAE | recon FID 1.90, sample FID 10.1 | 256/256 codes used, 16x compression |
-| 06 CycleGAN | FID 6.6 / 13.6 | cycle SSIM 0.89 / 0.68 |
-| 10 latent diffusion | FID 37.8 | beats pixel DDPM at half the training time |
-| 11 ViT vs ResNet-18 | 0.826 vs **0.920** | the CNN wins on accuracy *and* FLOPs |
-
-Three of these are worth reading twice. **RealNVP has the best likelihood and
-the worst samples**, which is the cleanest demonstration here that the two
-objectives differ. **The ViT loses to the ResNet while spending 25 percent more
-compute**, which is why the comparison carries a FLOPs column. And **latent
-diffusion beats pixel-space diffusion on both quality and cost**, which is the
-whole reason the method exists.
-
-These numbers come from short CPU runs and are not tuned. The DDPM in particular
-is undertrained at this budget and its README says so; scaling `--max-steps` on
-a GPU changes that picture substantially.
-
-## Repository layout
-
-```
-common/            shared code: dataset registry, figures, metrics
-  data.py          datasets, transforms, paired/unpaired wrappers
-  metrics.py       FID, KID, precision/recall, SSIM, PSNR, feature extractors
-  viz.py           sample grids, curves, latent plots
-  utils.py         seeding, devices, checkpoints, argument parsing
-01-vae/ ... 11-vit/
-data/              downloaded datasets (git-ignored)
-outputs/           cached feature extractors (git-ignored)
-```
-
-Projects import `common` through a one-line `bootstrap.py` that puts the
-repository root on `sys.path`, so scripts run correctly from inside their own
-folder.
-
-## Suggested order
-
-The projects build on each other, and reading them in order is the intended
-path:
-
-1. **01 VAE** -- latent variables, the ELBO, why sampling from a prior works.
-2. **02 VQ-VAE** -- what changes when the latent goes discrete, and why that
-   needs a second model to sample from.
-3. **03 DCGAN** -- adversarial training instead of likelihood.
-4. **04 cGAN/ACGAN** -- adding control, and how to check it is real.
-5. **05 Pix2Pix** and **06 CycleGAN** -- conditioning on an image; what cycle
-   consistency replaces when pairs are unavailable.
-6. **07 RealNVP** -- the exact-likelihood alternative, and what it costs.
-7. **08 DDPM** -> **09 DDIM** -> **10 latent diffusion** -- the modern line, and
-   the two efficiency ideas that made it practical.
-8. **11 ViT** -- a change of subject: inductive bias versus expressiveness,
-   measured rather than argued.
+Python 3.9+, PyTorch 2.0+, torchvision, numpy, scipy, matplotlib, tqdm, Pillow.
+Nothing else - the metrics that would normally justify a heavier dependency
+(confusion matrices, F1, PSNR, SSIM, FID, KID) are implemented in the projects
+themselves, and are short enough to be worth reading once.
