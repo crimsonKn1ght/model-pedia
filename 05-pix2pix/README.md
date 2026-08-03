@@ -79,6 +79,31 @@ that are the *wrong* translation of their input; only the per-pair metrics catch
 that. Conversely a model can win on L1 by outputting a blur that no per-pair
 metric penalises enough -- FID catches that one.
 
+## Reference run
+
+Edges-to-photo derived from Fashion-MNIST, 20000 training pairs, 4 epochs,
+`lambda_l1=100`, CPU only (about 8 minutes end to end):
+
+| Metric | Value |
+|---|---|
+| test L1 | 0.109 |
+| test PSNR | 20.1 dB |
+| test SSIM | 0.765 |
+| FID | 0.53 |
+| precision / recall | 0.97 / 0.90 |
+
+This is the strongest set of numbers in the repository, and the reason is
+structural rather than flattering: paired translation is by far the easiest task
+here. The model is handed an edge map that already fixes the shape and position
+of the output, so it only has to fill in interior intensity. Compare against the
+unconditional DCGAN, which must invent the whole image from noise and reaches
+FID 2.94.
+
+The lesson is about reading FID in context. A low number here means much less
+than the same number would for unconditional generation, which is exactly why
+the per-pair metrics are reported alongside: PSNR of 20.1 dB and SSIM of 0.765
+say the outputs are close to the true target, not merely plausible.
+
 ## What to look at
 
 * Run the `--lambda-l1 0` ablation. The adversarial losses keep improving while

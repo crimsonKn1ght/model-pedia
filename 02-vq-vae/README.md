@@ -93,6 +93,36 @@ repository* and are not comparable to published FID values. See
 `../01-vae/README.md` for the full explanation, or pass
 `--feature-extractor inception`.
 
+## Reference run
+
+Fashion-MNIST, 20000 training images, 3 VQ-VAE epochs then 2 PixelCNN epochs,
+`K=256`, 8x8 latent grid, CPU only (about 8 minutes end to end):
+
+| Metric | Value |
+|---|---|
+| test reconstruction MSE | 0.0127 |
+| test PSNR | 25.0 dB |
+| test SSIM | 0.888 |
+| **codebook perplexity** | **182.9 / 256** |
+| **codes used** | **256 / 256 (100%)** |
+| compression ratio | 16x |
+| FID of prior samples | 10.1 |
+| **FID of reconstructions** | **1.90** |
+| precision / recall | 0.80 / 0.62 |
+
+Two readings matter here.
+
+**The codebook is fully alive.** All 256 entries are used and perplexity sits at
+183, meaning roughly 183 codes are effectively active. Without dead-code
+restarts the same configuration starts near a perplexity of 4 and climbs only
+slowly. This is the single largest quality lever in the project.
+
+**Reconstruction FID is 1.90; sample FID is 10.1.** That five-fold gap localises
+the weakness precisely. The autoencoder is excellent -- a 16x compression that
+loses almost nothing perceptually. The PixelCNN prior is what limits generation,
+and more `--prior-epochs` is where extra budget should go. Without the
+reconstruction-only number you would not know which half to blame.
+
 ## Codebook collapse and dead-code restarts
 
 Early training is where the codebook is most fragile. A plain EMA codebook only

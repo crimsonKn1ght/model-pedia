@@ -85,6 +85,43 @@ precisely the observation latent diffusion is built on.
 
 Figures: `samples.png`, `stage1-reconstructions.png`, `cost-per-step.png`.
 
+## Reference run
+
+Fashion-MNIST, 20000 training images, `f=4` compression, 2 autoencoder epochs
+then 1500 diffusion steps, CPU only:
+
+| Metric | Value |
+|---|---|
+| stage 1 training | 3.3 min |
+| stage 2 training | 3.8 min |
+| autoencoder MSE | 0.0098 |
+| **FID of samples** | **37.8** |
+| **FID of the stage-1 floor** | **1.11** |
+| precision / recall | 0.81 / 0.06 |
+| latent vs pixel elements | 256 vs 1024 |
+| **cost per denoising step** | **7.2x cheaper** |
+
+**The efficiency claim holds.** One denoising step costs 0.6 ms in latent space
+against 4.6 ms in pixel space, a 7.2x saving from a 4x reduction in values. And
+the comparison that matters: pixel-space DDPM in project 08 reached FID 46.6
+after 13.3 minutes of training, while this reaches 37.8 in 7.1 minutes across
+both stages. Better samples, roughly half the compute. That is the entire
+argument for latent diffusion, reproduced at laptop scale.
+
+Note the measured speedup is below the naive 4x-implies-4x arithmetic in one
+direction and above it in another -- attention and fixed per-call overhead do
+not scale with resolution, so the relationship is never the simple ratio.
+
+**The floor tells you where the remaining budget should go.** Stage 1
+reconstructs at FID 1.11, so the autoencoder is very nearly lossless in the
+metric space. Samples score 37.8. The entire gap is stage 2, meaning more
+diffusion steps -- not a better autoencoder -- is what would improve this.
+
+**The honest caveat is recall at 0.06.** Precision is high, so individual
+samples look right, but diversity is poor after only 1500 diffusion steps. This
+is the same undertraining that limits project 08, and it shows up here in the
+metric built to detect it rather than in FID.
+
 ## What to look at
 
 * **The floor is the whole story at small scale.** Sweep `--downsample-factor`

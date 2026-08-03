@@ -74,6 +74,35 @@ context needed to interpret it:
 
 Everything lands in `outputs/comparison/`.
 
+## Reference run
+
+Fashion-MNIST, 20000 training images, 6 epochs each, CPU only. Both models were
+sized to land near the same parameter count so the comparison is about
+architecture rather than capacity:
+
+| Model | accuracy | top-5 | params | MFLOPs/image | ms/image | train time |
+|---|---|---|---|---|---|---|
+| ViT-Tiny | 0.826 | 0.995 | 2.69M | 172.7 | 0.98 | 17.2 min |
+| **ResNet-18** | **0.920** | **0.998** | 2.80M | **138.7** | 0.92 | **7.1 min** |
+
+**The ResNet wins on every axis at once.** Higher accuracy, fewer FLOPs, faster
+inference, and less than half the training time. This is the expected outcome at
+this scale and it is worth stating without softening: at 20000 small greyscale
+images, a convolution's built-in translation equivariance is worth more than
+self-attention's flexibility, and the ViT has to spend both parameters and data
+learning a prior the CNN gets for free.
+
+The ViT is not broken -- 82.6% with 99.5% top-5 is real learning, and its
+training curve was still improving when the budget ran out while the ResNet's
+had largely flattened. That asymmetry is the honest caveat: a short budget
+flatters the CNN, and the ranking would narrow with more epochs and more data.
+It would not obviously reverse at this dataset size, which is the point.
+
+If you take one thing from this project, make it that **architecture comparisons
+without a compute column are close to meaningless**. Quoting only the accuracies
+would suggest a tuning gap; the FLOPs column shows the ViT losing while spending
+25 percent more compute per image.
+
 ## What to look at
 
 * **Match the compute before drawing conclusions.** `--resnet-base` and

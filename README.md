@@ -137,6 +137,44 @@ agreement for the conditional GAN, and the stage-1 floor for latent diffusion. A
 single headline number rarely says anything useful on its own, and each README
 explains what its numbers are for.
 
+## Measured results
+
+Every project below was trained and evaluated on a 4-core CPU with no GPU. The
+FID column uses each dataset's own cached feature space, so numbers are
+comparable down a dataset group and not across groups or to published work.
+
+**MNIST**, comparable budgets:
+
+| Project | FID | precision / recall | other |
+|---|---|---|---|
+| 04 conditional GAN (cGAN) | **0.80** | 0.86 / 0.77 | 97.6% conditioning accuracy |
+| 03 DCGAN | 2.94 | 0.70 / 0.87 | |
+| 01 VAE | 11.6 | 0.68 / 0.74 | 0.207 bits/dim (ELBO bound) |
+| 07 RealNVP | 22.8 | 0.51 / 0.44 | **1.713 bits/dim, exact** |
+| 08 DDPM | 46.6 | 0.27 / 0.29 | 300 evals/image |
+| 09 DDIM | 178 at 20 evals | | **15x fewer evals, flat FID** |
+
+**Fashion-MNIST**, 20000-image subsets:
+
+| Project | Headline | Note |
+|---|---|---|
+| 05 Pix2Pix | FID 0.53, SSIM 0.765 | paired translation is the easiest task here |
+| 02 VQ-VAE | recon FID 1.90, sample FID 10.1 | 256/256 codes used, 16x compression |
+| 06 CycleGAN | FID 6.6 / 13.6 | cycle SSIM 0.89 / 0.68 |
+| 10 latent diffusion | FID 37.8 | beats pixel DDPM at half the training time |
+| 11 ViT vs ResNet-18 | 0.826 vs **0.920** | the CNN wins on accuracy *and* FLOPs |
+
+Three of these are worth reading twice. **RealNVP has the best likelihood and
+the worst samples**, which is the cleanest demonstration here that the two
+objectives differ. **The ViT loses to the ResNet while spending 25 percent more
+compute**, which is why the comparison carries a FLOPs column. And **latent
+diffusion beats pixel-space diffusion on both quality and cost**, which is the
+whole reason the method exists.
+
+These numbers come from short CPU runs and are not tuned. The DDPM in particular
+is undertrained at this budget and its README says so; scaling `--max-steps` on
+a GPU changes that picture substantially.
+
 ## Repository layout
 
 ```
