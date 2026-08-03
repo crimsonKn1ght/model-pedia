@@ -49,6 +49,29 @@ PROJECTS = {
         "train": [],
         "studies": [["compare.py", "--study", "skips"]],
     },
+    "16_self_supervised": {
+        "train": [],
+        "studies": [["compare.py", "--study", "method"]],
+    },
+    "17_masked_image_modeling": {
+        "train": [],
+        # Fine-tuning two classifiers is the slow half of evaluate.py and adds
+        # nothing a shape check needs.
+        "evaluate": ["--tasks", "recon", "probe"],
+        "studies": [["compare.py", "--study", "target"]],
+    },
+    "18_semantic_segmentation": {
+        "train": [],
+        "studies": [["compare.py", "--study", "loss"]],
+    },
+    "19_object_detection": {
+        "train": [],
+        "studies": [["compare.py", "--study", "box_loss"]],
+    },
+    "20_image_captioning": {
+        "train": [],
+        "studies": [["compare.py", "--study", "smoothing"]],
+    },
 }
 
 SMOKE_OUTPUT_DIR = "outputs/smoke"
@@ -85,7 +108,14 @@ def smoke_one(project: str, config: dict, keep_output: bool) -> tuple[bool, floa
             return False, time.time() - started, f"no checkpoint written under {out_dir}"
 
         ok, log = run(
-            [sys.executable, "evaluate.py", "--smoke-test", "--checkpoint", str(checkpoint)],
+            [
+                sys.executable,
+                "evaluate.py",
+                "--smoke-test",
+                "--checkpoint",
+                str(checkpoint),
+                *config.get("evaluate", []),
+            ],
             project_dir,
         )
         if not ok:

@@ -19,6 +19,14 @@ and a figure that shows the idea rather than just the score.
 | 03 | [Transfer learning](03_transfer_learning/) | Pretrained ResNet-18, MobileNetV3, EfficientNet-B0 | Flowers-102, Oxford-IIIT Pets | Frozen linear probe vs full fine-tuning, with a random-init control |
 | 04 | [Autoencoder](04_autoencoder/) | Convolutional AE | Fashion-MNIST, CIFAR-10 | A bottleneck turns compression into representation learning |
 | 05 | [Denoising autoencoder](05_denoising_autoencoder/) | U-Net, no-skip control | CIFAR-10, any image folder | A learned image prior, and where it stops generalising |
+| 16 | [Self-supervised learning](16_self_supervised/) | SimCLR, BYOL | CIFAR-10, STL-10, MNIST | Labels are not the only supervision - and the augmentation *is* the supervision |
+| 17 | [Masked image modelling](17_masked_image_modeling/) | MAE with a ViT encoder | CIFAR-10, any `ImageFolder` | Hide 75% of the image; reconstruction is the objective, the encoder is the result |
+| 18 | [Semantic segmentation](18_semantic_segmentation/) | U-Net, no-skip and dilated controls | Oxford-IIIT Pets, generated shapes | A label per pixel, and why mean IoU and pixel accuracy disagree |
+| 19 | [Object detection](19_object_detection/) | Anchor-free single-scale detector | MNIST-derived scenes, Pascal VOC 2007 | Variable-length output: assignment, NMS and mAP written out |
+| 20 | [Image captioning](20_image_captioning/) | CNN / frozen-ImageNet encoder + Transformer decoder | Flickr8k, generated shapes | A sequence out, and three metrics that disagree about it |
+
+The numbering follows the reference table this repository works through, so the gap
+between 05 and 16 is rows still to come rather than anything missing.
 
 ## Quickstart
 
@@ -67,6 +75,16 @@ a subset, the README says so and gives the command for the full run.
 | 03 Transfer learning | ~2 min frozen, ~6 min fine-tune | 345 MB + backbone weights |
 | 04 Autoencoder | ~3 min | 30 MB |
 | 05 Denoising autoencoder | ~5 min | 170 MB |
+| 16 Self-supervised learning | ~11 min (CIFAR-10, 10k subset); ~8 min on MNIST | 12-170 MB |
+| 17 Masked image modelling | ~2 min pretrain, ~5 min for the fine-tune comparison | 12-170 MB |
+| 18 Semantic segmentation | ~8 min | none (`shapes`), 810 MB (Oxford Pets) |
+| 19 Object detection | ~8 min train, ~2 min evaluate | 12 MB (`digits`), 880 MB (VOC 2007) |
+| 20 Image captioning | ~9 min | none (`shapes`), 1.1 GB (Flickr8k) |
+
+Projects 18, 19 and 20 default to a small generated or MNIST-derived dataset so that a
+first run costs minutes and no download. Each also supports the real dataset the task is
+normally taught on - Oxford-IIIT Pets, Pascal VOC 2007, Flickr8k - and the project README
+gives the command and says what it costs.
 
 A GPU is not required anywhere. If you have one, raise `--epochs` and drop
 `--train-subset` for numbers comparable with the literature.
@@ -78,20 +96,21 @@ python scripts/smoke_test.py
 ```
 
 Runs `train.py`, `evaluate.py` and each project's study script on synthetic
-data, with no downloads. It verifies imports, shapes, checkpoint round-trips
-and figure writing in about two minutes, and cleans up after itself.
+data, with no downloads and no pretrained weights. It verifies imports, shapes,
+checkpoint round-trips and figure writing for all ten projects in about three
+minutes, and cleans up after itself.
 
 ## Roadmap
 
-The projects above are the first five rows of a longer reference table. Still to
-come, roughly in order: variational autoencoders, VQ-VAE, GANs (DCGAN,
-conditional, image-to-image), normalizing flows, diffusion (DDPM, DDIM, latent),
-vision transformers, self-supervised learning, masked image modelling,
-segmentation, detection and captioning.
+The reference table runs to twenty rows; rows 01-05 and 16-20 are done. Still to come,
+roughly in order: variational autoencoders, VQ-VAE, GANs (DCGAN, conditional,
+image-to-image), normalizing flows, diffusion (DDPM, DDIM, latent) and vision
+transformers as a supervised classifier in its own right.
 
 ## Requirements
 
-Python 3.9+, PyTorch 2.0+, torchvision, numpy, matplotlib, tqdm. Nothing else -
-the metrics that would normally justify a heavier dependency (confusion
-matrices, F1, PSNR, SSIM) are implemented in the projects themselves, and are
-short enough to be worth reading once.
+Python 3.9+, PyTorch 2.0+, torchvision, numpy, matplotlib, tqdm, Pillow. Nothing else -
+the metrics that would normally justify a heavier dependency are implemented in the
+projects themselves, and are short enough to be worth reading once: confusion matrices,
+F1, PSNR and SSIM; IoU and Dice; non-maximum suppression and mean average precision;
+BLEU, METEOR and CIDEr-D.
