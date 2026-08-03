@@ -9,7 +9,9 @@ scripts import, that shapes line up end to end, that a checkpoint round-trips
 through ``evaluate.py`` and that every figure is written. It says nothing about
 whether the models learn anything - that is what the real runs are for.
 
-Finishes in well under a minute on a laptop CPU.
+Projects with more than one training stage (the VQ-VAE's code prior, latent
+diffusion's autoencoder) list the follow-up scripts under ``extra``, so the whole
+pipeline is exercised rather than just the first stage.
 """
 
 from __future__ import annotations
@@ -48,6 +50,54 @@ PROJECTS = {
     "05_denoising_autoencoder": {
         "train": [],
         "studies": [["compare.py", "--study", "skips"]],
+    },
+    "06_variational_autoencoder": {
+        "train": [],
+        "studies": [["compare.py", "--study", "likelihood"]],
+    },
+    "07_vector_quantized_ae": {
+        "train": [],
+        # The prior is a second training stage, so it gets its own entry in the recipe.
+        "extra": [["train_prior.py", "--checkpoint", "{checkpoint}"]],
+        "studies": [["compare.py", "--study", "codebook_rule"]],
+    },
+    "08_gan": {
+        "train": [],
+        "studies": [["compare.py", "--study", "loss"]],
+    },
+    "09_conditional_gan": {
+        "train": [],
+        "studies": [["compare.py", "--study", "mode"]],
+    },
+    "10_image_to_image_gan": {
+        "train": [],
+        "studies": [["compare.py", "--study", "skips"]],
+    },
+    "11_normalizing_flow": {
+        "train": [],
+        "studies": [["compare.py", "--study", "dequantisation"]],
+    },
+    "12_diffusion": {
+        "train": [],
+        "studies": [["compare.py", "--study", "prediction"]],
+    },
+    "13_faster_diffusion": {
+        # train.py delegates to project 12; evaluate.py is the new code here.
+        "train": [],
+        "evaluate": ["--out-dir", "outputs/smoke/eval"],
+        "studies": [["compare.py"]],
+    },
+    "14_latent_diffusion": {
+        # Stage one first, then the latent diffusion model trains on top of it.
+        "train_script": "train_autoencoder.py",
+        "train": [],
+        "extra": [["train.py", "--autoencoder", "{checkpoint}", "--out-dir", "{out_dir}"]],
+        "checkpoint_name": "best.pt",
+        "studies": [["compare.py", "--study", "channels"]],
+    },
+    "15_vision_transformer": {
+        "train": [],
+        "studies": [["compare.py", "--study", "arch"]],
     },
     "16_self_supervised": {
         "train": [],
@@ -92,7 +142,7 @@ def smoke_one(project: str, config: dict, keep_output: bool) -> tuple[bool, floa
         ok, log = run(
             [
                 sys.executable,
-                "train.py",
+                config.get("train_script", "train.py"),
                 "--smoke-test",
                 "--out-dir",
                 str(out_dir),
@@ -103,7 +153,27 @@ def smoke_one(project: str, config: dict, keep_output: bool) -> tuple[bool, floa
         if not ok:
             return False, time.time() - started, log
 
-        checkpoint = next(out_dir.rglob("best.pt"), None)
+        # A project with more than one training stage (VQ-VAE's prior, latent
+        # diffusion's second stage) lists the follow-ups under "extra".
+        for extra in config.get("extra", []):
+            produced = next(out_dir.rglob("*.pt"), None)
+            if produced is None:
+                return False, time.time() - started, f"nothing written under {out_dir}"
+            command = [
+                sys.executable,
+                *[
+                    part.format(checkpoint=str(produced), out_dir=str(out_dir))
+                    for part in extra
+                ],
+                "--smoke-test",
+            ]
+            ok, log = run(command, project_dir)
+            if not ok:
+                return False, time.time() - started, log
+
+        checkpoint = next(
+            (path for path in out_dir.rglob(config.get("checkpoint_name", "best.pt"))), None
+        )
         if checkpoint is None:
             return False, time.time() - started, f"no checkpoint written under {out_dir}"
 

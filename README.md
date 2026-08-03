@@ -19,14 +19,26 @@ and a figure that shows the idea rather than just the score.
 | 03 | [Transfer learning](03_transfer_learning/) | Pretrained ResNet-18, MobileNetV3, EfficientNet-B0 | Flowers-102, Oxford-IIIT Pets | Frozen linear probe vs full fine-tuning, with a random-init control |
 | 04 | [Autoencoder](04_autoencoder/) | Convolutional AE | Fashion-MNIST, CIFAR-10 | A bottleneck turns compression into representation learning |
 | 05 | [Denoising autoencoder](05_denoising_autoencoder/) | U-Net, no-skip control | CIFAR-10, any image folder | A learned image prior, and where it stops generalising |
+| 06 | [Variational autoencoder](06_variational_autoencoder/) | Conv VAE, beta-VAE | Fashion-MNIST, CIFAR-10, CelebA | A latent space you can sample from, and posterior collapse counted |
+| 07 | [Vector-quantized AE](07_vector_quantized_ae/) | VQ-VAE + autoregressive code prior | Fashion-MNIST, CIFAR-10 | A discrete description of an image, and why generation needs a second stage |
+| 08 | [GAN](08_gan/) | DCGAN | Fashion-MNIST, CIFAR-10, CelebA | Learning with no loss you can evaluate; mode collapse measured, not guessed |
+| 09 | [Conditional GAN](09_conditional_gan/) | cGAN, ACGAN | Fashion-MNIST, CIFAR-10 | Steerable generation, and the accuracy/diversity trade it exposes |
+| 10 | [Image-to-image GAN](10_image_to_image_gan/) | Pix2Pix (U-Net + PatchGAN) | Facades, generated pairs | Two losses that disagree, and why you need both |
+| 11 | [Normalizing flow](11_normalizing_flow/) | RealNVP | Fashion-MNIST, CIFAR-10 | The exact likelihood, and what dequantisation is for |
+| 12 | [Diffusion](12_diffusion/) | DDPM with a U-Net | Fashion-MNIST, CIFAR-10 | Many small easy problems instead of one hard one |
+| 13 | [Faster diffusion inference](13_faster_diffusion/) | DDIM | Project 12's trained DDPM | Quality against sampling cost, as a curve rather than a number |
+| 14 | [Latent diffusion](14_latent_diffusion/) | Autoencoder + diffusion in its latent | Fashion-MNIST, CIFAR-10 | Denoise a smaller tensor, and measure the ceiling that sets |
+| 15 | [Vision Transformer](15_vision_transformer/) | ViT-Tiny, size-matched ResNet | CIFAR-10/100, Flowers-102 | What the convolution was giving you for free |
 | 16 | [Self-supervised learning](16_self_supervised/) | SimCLR, BYOL | CIFAR-10, STL-10, MNIST | Labels are not the only supervision - and the augmentation *is* the supervision |
 | 17 | [Masked image modelling](17_masked_image_modeling/) | MAE with a ViT encoder | CIFAR-10, any `ImageFolder` | Hide 75% of the image; reconstruction is the objective, the encoder is the result |
 | 18 | [Semantic segmentation](18_semantic_segmentation/) | U-Net, no-skip and dilated controls | Oxford-IIIT Pets, generated shapes | A label per pixel, and why mean IoU and pixel accuracy disagree |
 | 19 | [Object detection](19_object_detection/) | Anchor-free single-scale detector | MNIST-derived scenes, Pascal VOC 2007 | Variable-length output: assignment, NMS and mAP written out |
 | 20 | [Image captioning](20_image_captioning/) | CNN / frozen-ImageNet encoder + Transformer decoder | Flickr8k, generated shapes | A sequence out, and three metrics that disagree about it |
 
-The numbering follows the reference table this repository works through, so the gap
-between 05 and 16 is rows still to come rather than anything missing.
+The numbering follows the reference table this repository works through. Projects 13 and 14
+build on project 12 rather than standing alone - DDIM re-samples an already-trained DDPM, and
+latent diffusion is a composition of an autoencoder with one - so they import its model and
+metrics instead of copying them. Every other project is self-contained.
 
 ## Quickstart
 
@@ -75,6 +87,16 @@ a subset, the README says so and gives the command for the full run.
 | 03 Transfer learning | ~2 min frozen, ~6 min fine-tune | 345 MB + backbone weights |
 | 04 Autoencoder | ~3 min | 30 MB |
 | 05 Denoising autoencoder | ~5 min | 170 MB |
+| 06 Variational autoencoder | ~5 min | 30 MB |
+| 07 Vector-quantized AE | ~4 min stage one, ~4 min the code prior | 30 MB |
+| 08 GAN | ~10 min (FID every epoch) | 30 MB |
+| 09 Conditional GAN | ~11 min | 30 MB |
+| 10 Image-to-image GAN | ~8 min | none (generated pairs), 30 MB (facades) |
+| 11 Normalizing flow | ~5 min | 30 MB |
+| 12 Diffusion | ~12 min (sampling dominates) | 30 MB |
+| 13 Faster diffusion inference | ~4 min, no training | reuses project 12 |
+| 14 Latent diffusion | ~4 min stage one, ~8 min stage two | 30 MB |
+| 15 Vision Transformer | ~8 min per architecture | 170 MB |
 | 16 Self-supervised learning | ~11 min (CIFAR-10, 10k subset); ~8 min on MNIST | 12-170 MB |
 | 17 Masked image modelling | ~2 min pretrain, ~5 min for the fine-tune comparison | 12-170 MB |
 | 18 Semantic segmentation | ~8 min | none (`shapes`), 810 MB (Oxford Pets) |
@@ -100,12 +122,22 @@ data, with no downloads and no pretrained weights. It verifies imports, shapes,
 checkpoint round-trips and figure writing for all ten projects in about three
 minutes, and cleans up after itself.
 
+## A note on FID
+
+Projects 06-14 report FID, KID and generative precision/recall. The published FID number comes
+from a specific ImageNet InceptionV3 checkpoint; downloading a 90 MB classifier to score 32x32
+images would be the largest dependency here by an order of magnitude, so instead a small
+classifier is trained on the dataset itself and cached. **Those values are not comparable with
+published FID.** They are comparable within this repository - the same ruler for every arm of
+every study - which is what the comparisons need. Every project's `metrics.json` records which
+feature network was used, and `utils.py` explains it at the top.
+
+Project 11's bits-per-dimension is the exception: it is exact and uses the standard convention,
+so it *is* comparable with published numbers.
+
 ## Roadmap
 
-The reference table runs to twenty rows; rows 01-05 and 16-20 are done. Still to come,
-roughly in order: variational autoencoders, VQ-VAE, GANs (DCGAN, conditional,
-image-to-image), normalizing flows, diffusion (DDPM, DDIM, latent) and vision
-transformers as a supervised classifier in its own right.
+All twenty rows of the reference table are implemented.
 
 ## Requirements
 
