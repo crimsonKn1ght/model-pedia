@@ -127,6 +127,10 @@ PROJECTS = {
         "train": [],
         "studies": [["compare.py", "--study", "smoothing"]],
     },
+    "21_unpaired_translation": {
+        "train": [],
+        "studies": [["compare.py", "--study", "cycle"]],
+    },
 }
 
 SMOKE_OUTPUT_DIR = "outputs/smoke"

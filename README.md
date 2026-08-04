@@ -34,11 +34,17 @@ and a figure that shows the idea rather than just the score.
 | 18 | [Semantic segmentation](18_semantic_segmentation/) | U-Net, no-skip and dilated controls | Oxford-IIIT Pets, generated shapes | A label per pixel, and why mean IoU and pixel accuracy disagree |
 | 19 | [Object detection](19_object_detection/) | Anchor-free single-scale detector | MNIST-derived scenes, Pascal VOC 2007 | Variable-length output: assignment, NMS and mAP written out |
 | 20 | [Image captioning](20_image_captioning/) | CNN / frozen-ImageNet encoder + Transformer decoder | Flickr8k, generated shapes | A sequence out, and three metrics that disagree about it |
+| 21 | [Unpaired translation](21_unpaired_translation/) | CycleGAN | Generated shapes, Fashion-MNIST classes, horse2zebra | Learning a mapping with no pairs, and two metrics that each hide a way of cheating |
 
-The numbering follows the reference table this repository works through. Projects 13 and 14
-build on project 12 rather than standing alone - DDIM re-samples an already-trained DDPM, and
-latent diffusion is a composition of an autoencoder with one - so they import its model and
-metrics instead of copying them. Every other project is self-contained.
+Rows 01-20 follow the reference table this repository works through. **Project 21 goes past
+it**: CycleGAN is not one of the twenty rows, but unpaired translation is a large enough idea
+that leaving it out felt like a gap - and putting it next to project 10's paired Pix2Pix is
+the clearest way to see what removing the pairs costs.
+
+Projects 13 and 14 build on project 12 rather than standing alone - DDIM re-samples an
+already-trained DDPM, and latent diffusion is a composition of an autoencoder with one - so
+they import its model and metrics instead of copying them. Every other project is
+self-contained.
 
 ## Quickstart
 
@@ -102,11 +108,12 @@ a subset, the README says so and gives the command for the full run.
 | 18 Semantic segmentation | ~8 min | none (`shapes`), 810 MB (Oxford Pets) |
 | 19 Object detection | ~8 min train, ~2 min evaluate | 12 MB (`digits`), 880 MB (VOC 2007) |
 | 20 Image captioning | ~9 min | none (`shapes`), 1.1 GB (Flickr8k) |
+| 21 Unpaired translation | ~8 min | none (`shapes`), 12-170 MB, 110 MB (horse2zebra) |
 
-Projects 18, 19 and 20 default to a small generated or MNIST-derived dataset so that a
-first run costs minutes and no download. Each also supports the real dataset the task is
-normally taught on - Oxford-IIIT Pets, Pascal VOC 2007, Flickr8k - and the project README
-gives the command and says what it costs.
+Projects 18 to 21 default to a small generated or MNIST-derived dataset so that a first run
+costs minutes and no download. Each also supports the real dataset the task is normally
+taught on - Oxford-IIIT Pets, Pascal VOC 2007, Flickr8k, horse2zebra - and the project
+README gives the command and says what it costs.
 
 A GPU is not required anywhere. If you have one, raise `--epochs` and drop
 `--train-subset` for numbers comparable with the literature.
@@ -136,14 +143,14 @@ must invert its forward pass. Nothing is downloaded and nothing is trained.
 **`scripts/smoke_test.py`** checks that the *pipelines run*. It executes
 `train.py`, `evaluate.py` and each project's study script on synthetic tensors,
 verifying imports, shapes, checkpoint round-trips and figure writing for all
-twenty projects in about eight minutes on four CPU cores, then cleans up after
+twenty-one projects in about nine minutes on four CPU cores, then cleans up after
 itself. It runs the metric self-test first, since it otherwise only proves a
 number was produced, not that it was right. `--skip-metrics` opts out;
 `--projects` narrows it to a subset.
 
 ## A note on FID
 
-Projects 06-14 report FID, KID and generative precision/recall. The published FID number comes
+Projects 06-14 and 21 report FID, KID and generative precision/recall. The published FID number comes
 from a specific ImageNet InceptionV3 checkpoint; downloading a 90 MB classifier to score 32x32
 images would be the largest dependency here by an order of magnitude, so instead a small
 classifier is trained on the dataset itself and cached. **Those values are not comparable with
@@ -161,7 +168,7 @@ uses the standard convention, so it *is* comparable with published numbers.
 
 ## Roadmap
 
-All twenty rows of the reference table are implemented.
+All twenty rows of the reference table are implemented, plus project 21 beyond it.
 
 ## Requirements
 
