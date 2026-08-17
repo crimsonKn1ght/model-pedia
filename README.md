@@ -1,5 +1,10 @@
 # model-pedia
 
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg?style=flat)](requirements.txt)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg?style=flat)](requirements.txt)
+[![Projects](https://img.shields.io/badge/projects-21-brightgreen.svg?style=flat)](#projects)
+[![Metric self-test](https://img.shields.io/badge/metric%20self--test-96%20checks-brightgreen.svg?style=flat)](#checking-the-repository)
+
 Small, self-contained reference implementations of the models you meet on the
 way into deep learning. Each one is a folder you can read in a sitting and run
 in a few minutes on a laptop CPU.
